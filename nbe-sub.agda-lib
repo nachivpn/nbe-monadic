@@ -1,0 +1,5 @@
+name: nbe-sub
+depend:
+  standard-library
+include :
+  src
