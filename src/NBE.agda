@@ -227,12 +227,12 @@ norm = reify ∘ eval
 mutual
 
   q : ∀ {a} → Nf' a →' Tm' a
-  q (`λ n)   = `λ (q n)
-  q (p ↑ n) = p ↑ qNe n
+  q (`λ n)    = `λ (q n)
+  q (p ↑ n)   = p ↑ qNe n
   q (η n)     = η (q n)
   q (x >>= n) = qNe x >>= q n
 
   qNe : ∀ {a} → Ne' a →' Tm' a
-  qNe (var x)   = var x
+  qNe (var x) = var x
   qNe (x ∙ n) = qNe x ∙ q n
 
