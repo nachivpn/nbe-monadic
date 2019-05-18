@@ -1,9 +1,12 @@
 open import Level
 open import Relation.Binary hiding (_⇒_)
 
-module Presheaf (P : Preorder zero zero zero) where
+module Presheaf
+  (P : Preorder zero zero zero)
+  (L : Preorder zero zero zero)
+  where
 
-open import Type P
+open import Type P L
 
 data _⊆_ : Ctx → Ctx → Set where
   base : Ø ⊆ Ø

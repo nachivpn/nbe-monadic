@@ -5,11 +5,18 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open Preorder
 
-module Type (P : Preorder zero zero zero) where
+module Type
+  (P : Preorder zero zero zero)
+  (L : Preorder zero zero zero)
+  where
 
 -- the index set
 I : Set
 I = Carrier P
+
+-- set of labels
+Label : Set
+Label = Carrier L
 
 _≼_     = _∼_ P
 ≼-refl  = refl P
@@ -18,9 +25,9 @@ _≼_     = _∼_ P
 infixr 10 _⇒_
 
 data Type  : Set where
-  𝕓   : (i : I)      → Type
-  _⇒_ : (a b : Type) → Type
-  𝕋   : Type         → Type
+  𝕓    : (i : I)      → Type
+  _⇒_  : (a b : Type) → Type
+  ⟨_⟩_ : Type → Label → Type
 
 data Ctx : Set where
   Ø    : Ctx
