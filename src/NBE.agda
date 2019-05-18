@@ -54,10 +54,10 @@ module Variable where
     ze : ∀ {Γ a}   → a ∈ (Γ `, a)
     su : ∀ {Γ a S} → a ∈ Γ → a ∈ (Γ `, S)
 
-  weakV : ∀ {a} {Γ Δ} → Γ ⊆ Δ → a ∈ Δ → a ∈ Γ
-  weakV (keep e) ze     = ze
-  weakV (keep e) (su v) = su (weakV e v)
-  weakV (drop e) v      = su (weakV e v)
+  wkenV : ∀ {a} {Γ Δ} → Γ ⊆ Δ → a ∈ Δ → a ∈ Γ
+  wkenV (keep e) ze     = ze
+  wkenV (keep e) (su v) = su (wkenV e v)
+  wkenV (drop e) v      = su (wkenV e v)
 
 open Variable
 
@@ -74,7 +74,7 @@ module Term where
   wkenT : ∀ {a} {Γ Δ} → Γ ⊆ Δ → Term Δ a → Term Γ a
   wkenT e (`λ t)     = `λ (wkenT (keep e) t)
   wkenT e (α ↑ t)    = α ↑ (wkenT e t)
-  wkenT e (var x)    = var (weakV e x)
+  wkenT e (var x)    = var (wkenV e x)
   wkenT e (t ∙ t₁)   = wkenT e t ∙ wkenT e t₁
   wkenT e (η t)      = η (wkenT e t)
   wkenT e (t >>= t₁) = wkenT e t >>= wkenT (keep e) t₁
@@ -87,21 +87,21 @@ module NormalForm where
 
      data Ne (Γ : Ctx) : Type → Set where
        var   : ∀ {a}   → a ∈ Γ → Ne Γ a
-       app   : ∀ {a b} → Ne Γ (a ⇒ b) → Nf Γ a → Ne Γ b
+       _∙_   : ∀ {a b} → Ne Γ (a ⇒ b) → Nf Γ a → Ne Γ b
 
      data Nf (Γ : Ctx) : Type → Set where
-       abs   : ∀ {a b} → Nf (Γ `, a) b → Nf Γ (a ⇒ b)
-       neu   : ∀ {i j} → 𝕓 i ⋖ 𝕓 j →  Ne Γ (𝕓 i) → Nf Γ (𝕓 j)
+       `λ    : ∀ {a b} → Nf (Γ `, a) b → Nf Γ (a ⇒ b)
+       _↑_   : ∀ {i j} → 𝕓 i ⋖ 𝕓 j →  Ne Γ (𝕓 i) → Nf Γ (𝕓 j)
        η     : ∀ {a}   → Nf Γ a → Nf Γ (𝕋 a)
        _>>=_ : ∀ {a b} → Ne Γ (𝕋 a) → Nf (Γ `, a) (𝕋 b) → Nf Γ (𝕋 b)
 
      wkenNe : ∀ {T} {Γ Δ} → Γ ⊆ Δ → Ne Δ T → Ne Γ T
-     wkenNe e (var x)   = var (weakV e x)
-     wkenNe e (app n x) = app (wkenNe e n) (wkenNf e x)
+     wkenNe e (var x) = var (wkenV e x)
+     wkenNe e (n ∙ x) = (wkenNe e n) ∙ (wkenNf e x)
 
      wkenNf : ∀ {T} {Γ Δ} → Γ ⊆ Δ → Nf Δ T → Nf Γ T
-     wkenNf e (abs n)   = abs (wkenNf (keep e) n)
-     wkenNf e (neu p x) = neu p (wkenNe e x)
+     wkenNf e (`λ n)    = `λ (wkenNf (keep e) n)
+     wkenNf e (p ↑ x)   = p ↑ (wkenNe e x)
      wkenNf e (η n)     = η (wkenNf e n)
      wkenNf e (x >>= n) = wkenNe e x >>= wkenNf (keep e) n
 
@@ -196,13 +196,13 @@ eval {Γ = Γ} (t >>= t₁) γ =
   bindExp𝒞 (λ e x → eval t₁ (Wken ⟦ Γ ⟧ₑ e γ , x)) (eval t γ)
 
 liftNf : ∀ {i j} → i ≼ j → Nf' (𝕓 i) →' Nf' (𝕓 j)
-liftNf p (neu (subb q) n) = neu (subb (≼-trans q p)) n
+liftNf p ((subb q) ↑ n) = (subb (≼-trans q p)) ↑ n
 
 mutual
 
   reifyVal : ∀ {a} → ⟦ a ⟧ →' Nf' a
   reifyVal {𝕓 i}    (_ , p , n) = liftNf p n
-  reifyVal {a ⇒ b} f            = abs (reifyVal (f (drop ⊆-refl) (reflect {a} (var ze))))
+  reifyVal {a ⇒ b} f            = `λ (reifyVal (f (drop ⊆-refl) (reflect {a} (var ze))))
   reifyVal {𝕋 a}    m           = reifyVal𝒞 m
 
   reifyVal𝒞 : ∀ {a} → 𝒞' ⟦ a ⟧ →' Nf' (𝕋 a)
@@ -210,8 +210,8 @@ mutual
   reifyVal𝒞 (bin x m) = x >>= reifyVal𝒞 m
 
   reflect : ∀ {a} → Ne' a →' ⟦ a ⟧
-  reflect {𝕓 i}   n = i , ≼-refl , (neu ⋖-refl n)
-  reflect {_ ⇒ _} n = λ e v → reflect (app (wkenNe e n) (reifyVal v))
+  reflect {𝕓 i}   n = i , ≼-refl , (⋖-refl ↑ n)
+  reflect {_ ⇒ _} n = λ e v → reflect ((wkenNe e n) ∙ (reifyVal v))
   reflect {𝕋 a}   n = bin n (ret (reflect {a} (var ze)))
 
 idSubst :  ∀ Γ → ⟦ Γ ⟧ₑ .In Γ
@@ -227,12 +227,12 @@ norm = reify ∘ eval
 mutual
 
   q : ∀ {a} → Nf' a →' Tm' a
-  q (abs n)   = `λ (q n)
-  q (neu p n) = p ↑ qNe n
+  q (`λ n)   = `λ (q n)
+  q (p ↑ n) = p ↑ qNe n
   q (η n)     = η (q n)
   q (x >>= n) = qNe x >>= q n
 
   qNe : ∀ {a} → Ne' a →' Tm' a
   qNe (var x)   = var x
-  qNe (app x n) = qNe x ∙ q n
+  qNe (x ∙ n) = qNe x ∙ q n
 
