@@ -122,16 +122,16 @@ module CoverMonad where
   wken𝒞 e (bin x m) = bin (wkenNe e x) (wken𝒞 (keep e) m)
 
   𝒞' : Label → 𝒫 → 𝒫
-  In   (𝒞' ℓ A) Γ = 𝒞 Γ A ℓ 
+  In   (𝒞' ℓ A) Γ = 𝒞 Γ A ℓ
   Wken (𝒞' ℓ A)   = wken𝒞
 
   open import Relation.Binary.PropositionalEquality
-    
+
   cast : ∀ {A} {ℓ ℓ' : Label} → ℓ ≡ ℓ' → 𝒞' ℓ A →' 𝒞' ℓ' A
-  cast refl m = m
-  
-  return𝒞 : ∀ {A} → A →' 𝒞' ⊥ A  
-  return𝒞 {A} = ret 
+  cast {A} ℓ≡ℓ′ m  = subst (𝒞 _ A) ℓ≡ℓ′ m
+
+  return𝒞 : ∀ {A} → A →' 𝒞' ⊥ A
+  return𝒞 {A} = ret
 
   map𝒞  : ∀ {A B} {ℓ} → (A →' B) → 𝒞' ℓ A →' 𝒞' ℓ B
   map𝒞 f (ret x)   = ret (f x)
@@ -141,7 +141,7 @@ module CoverMonad where
   join𝒞 (ret x)   = cast (sym ⊥-l) x
   join𝒞 (bin x m) = cast ⊔-assoc (bin x (join𝒞 m))
 
-  bind𝒞 : ∀ {A B} {ℓ₁ ℓ₂} → (A →' 𝒞' ℓ₁ B) → (𝒞' ℓ₂ A →' 𝒞' (ℓ₂ ⊔ ℓ₁) B) 
+  bind𝒞 : ∀ {A B} {ℓ₁ ℓ₂} → (A →' 𝒞' ℓ₁ B) → (𝒞' ℓ₂ A →' 𝒞' (ℓ₂ ⊔ ℓ₁) B)
   bind𝒞 f m = join𝒞 (map𝒞 f m)
 
   -- special operation
@@ -221,8 +221,7 @@ mutual
   reflect : ∀ {a} → Ne' a →' ⟦ a ⟧
   reflect {𝕓 i}   n = i , ≼-refl , (⋖-refl ↑ n)
   reflect {_ ⇒ _} n = λ e v → reflect ((wkenNe e n) ∙ (reifyVal v))
-  reflect {⟨ a ⟩ ℓ}   n = {!bin n!} -- needs ℓ ⊔ ℓ ≡ ℓ
-    -- bin n (ret (reflect {a} (var ze)))
+  reflect {⟨ a ⟩ ℓ}   n = cast ⊥-r (bin n (ret (reflect {a} (var ze))))
 
 idSubst :  ∀ Γ → ⟦ Γ ⟧ₑ .In Γ
 idSubst Ø        = tt
