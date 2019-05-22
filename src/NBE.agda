@@ -95,7 +95,7 @@ module NormalForm where
 
      data Nf (Γ : Ctx) : Type → Set where
        `λ    : ∀ {a b}      → Nf (Γ `, a) b → Nf Γ (a ⇒ b)
-       _↑_   : ∀ {i j}      → 𝕓 i ⋖ 𝕓 j →  Ne Γ (𝕓 i) → Nf Γ (𝕓 j)
+       _↑_   : ∀ {i j}      → i ≼ j →  Ne Γ (𝕓 i) → Nf Γ (𝕓 j)
        up    : ∀ {ℓᵢ ℓⱼ a}  → ℓᵢ ⊑ ℓⱼ → Nf Γ (⟨ a ⟩ ℓᵢ) → Nf Γ (⟨ a ⟩ ℓⱼ)
        η     : ∀ {a}        → Nf Γ a → Nf Γ (⟨ a ⟩ ⊥)
        _>>=_ : ∀ {a b ℓ ℓ'} → Ne Γ (⟨ a ⟩ ℓ) → Nf (Γ `, a) (⟨ b ⟩ ℓ') → Nf Γ (⟨ b ⟩ (ℓ ⊔ ℓ'))
@@ -211,13 +211,10 @@ eval {Γ = Γ} (η t) γ      = ret (eval t γ)
 eval {Γ = Γ} (t >>= t₁) γ =
   bindExp𝒞 (λ e x → eval t₁ (Wken ⟦ Γ ⟧ₑ e γ , x)) (eval t γ)
 
-liftNf : ∀ {i j} → i ≼ j → Nf' (𝕓 i) →' Nf' (𝕓 j)
-liftNf p ((subb q) ↑ n) = (subb (≼-trans q p)) ↑ n
-
 mutual
 
   reifyVal : ∀ {a} → ⟦ a ⟧ →' Nf' a
-  reifyVal {𝕓 i}    (_ , p , n)  = liftNf p n
+  reifyVal {𝕓 i} (_ , p , q ↑ n) = (≼-trans q p) ↑ n
   reifyVal {a ⇒ b} f             = `λ (reifyVal (f (drop ⊆-refl) (reflect {a} (var ze))))
   reifyVal {⟨ a ⟩ ℓ} m           = reifyVal𝒞 m
 
@@ -227,9 +224,9 @@ mutual
   reifyVal𝒞 (up p m)  = up p (reifyVal𝒞 m)
 
   reflect : ∀ {a} → Ne' a →' ⟦ a ⟧
-  reflect {𝕓 i}   n = i , ≼-refl , (⋖-refl ↑ n)
-  reflect {_ ⇒ _} n = λ e v → reflect ((wkenNe e n) ∙ (reifyVal v))
-  reflect {⟨ a ⟩ ℓ}   n = cast ⊥-r (bin n (ret (reflect {a} (var ze))))
+  reflect {𝕓 i}      n = i , ≼-refl , (≼-refl ↑ n)
+  reflect {_ ⇒ _}    n = λ e v → reflect ((wkenNe e n) ∙ (reifyVal v))
+  reflect {⟨ a ⟩ ℓ}  n = cast ⊥-r (bin n (ret (reflect {a} (var ze))))
 
 idSubst :  ∀ Γ → ⟦ Γ ⟧ₑ .In Γ
 idSubst Ø        = tt
@@ -245,7 +242,8 @@ mutual
 
   q : ∀ {a} → Nf' a →' Tm' a
   q (`λ n)    = `λ (q n)
-  q (p ↑ n)   = p ↑ qNe n
+  q (p ↑ n)   = subb p ↑ qNe n
+  -- unecessary ⋖-refl shows that subm should be split further
   q (up p n)  = subm p ⋖-refl ↑ q n
   q (η n)     = η (q n)
   q (x >>= n) = qNe x >>= q n
