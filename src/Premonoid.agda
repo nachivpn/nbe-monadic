@@ -34,6 +34,8 @@ module Premonoid where
       ⊥-l     : ∀ {ℓ} → ⊥ ⊔ ℓ ≡ ℓ 
       ⊥-r     : ∀ {ℓ} → ℓ ⊔ ⊥ ≡ ℓ
 
+      -- congruence law (seems like a reasonable assumption on preordered monoids)
+      ⊔-cong  : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} → ℓ₁ ⊑ ℓ₃ → ℓ₂ ⊑ ℓ₄ → ℓ₁ ⊔ ℓ₂ ⊑ ℓ₃ ⊔ ℓ₄
       
       -- ⊔-comm   : ∀{ℓ ℓ'} → (ℓ ⊔ ℓ') ≡ (ℓ' ⊔ ℓ)
 
