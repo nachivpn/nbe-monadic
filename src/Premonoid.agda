@@ -4,7 +4,7 @@ module Premonoid where
   open import Level using (zero) 
   open import Relation.Binary.PropositionalEquality
   open Preorder
-  
+
   record Monoid (L : Preorder zero zero zero) : Set₁ where
 
     infix 4 _⊑_
@@ -25,10 +25,10 @@ module Premonoid where
 
       -- monoidal composition
       _⊔_ : Label → Label → Label
-      
+
       -- unit
       ⊥   : Label
-      
+
       -- monoidal laws
       ⊔-assoc : ∀ {ℓ₁ ℓ₂ ℓ₃} → ℓ₁ ⊔ (ℓ₂ ⊔ ℓ₃) ≡ (ℓ₁ ⊔ ℓ₂) ⊔ ℓ₃
       ⊥-l     : ∀ {ℓ} → ⊥ ⊔ ℓ ≡ ℓ 

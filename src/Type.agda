@@ -29,9 +29,18 @@ data Type  : Set where
   _⇒_  : (a b : Type) → Type
   ⟨_⟩_ : Type → Label → Type
 
+data _⊲_ : Type → Type → Set where
+  ⊲-refl : ∀ {a}       → a ⊲ a
+  -- ⊲-T    : ∀ {ℓ} {a b} → a ⊲ b → a ⊲ (⟨ b ⟩ ℓ )
+  ⊲-⇒l   : ∀ {a b c}   → a ⊲ b → a ⊲ (b ⇒ c)
+  ⊲-⇒r   : ∀ {a b c}   → a ⊲ b → a ⊲ (c ⇒ b)
+
+
 data Ctx : Set where
   Ø    : Ctx
   _`,_ : Ctx → Type → Ctx
 
-
+data _⊲C_ : Type → Ctx → Set where
+  ze : ∀ {Γ} {a b} → a ⊲ b  → a ⊲C (Γ `, b)
+  su : ∀ {Γ} {a b} → a ⊲C Γ → a ⊲C (Γ `, b)
 

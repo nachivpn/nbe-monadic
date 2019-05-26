@@ -16,8 +16,9 @@ module NBE
   where
 
 open Monoid M
-open import Type B L
+open import Type B L public
 open import Presheaf B L ; open 𝒫
+open import Relation.Binary.PropositionalEquality
 
 module SubTypeRelation where
 
@@ -50,7 +51,7 @@ module SubTypeRelation where
   ⋖-trans (subf p q) (subf r s) = subf (⋖-trans r p) (⋖-trans q s)
   ⋖-trans (subm p q) (subm r s) = subm (⊑-trans p r) (⋖-trans q s)
 
-open SubTypeRelation
+open SubTypeRelation public
 
 module Variable where
 
@@ -63,9 +64,9 @@ module Variable where
   wkenV (keep e) (su v) = su (wkenV e v)
   wkenV (drop e) v      = su (wkenV e v)
 
-open Variable
+open Variable public
 
-module Term where
+module Tm where
 
   data Term (Γ : Ctx) : Type → Set where
     `λ    : ∀ {a b} → Term (Γ `, a) b   → Term Γ (a ⇒ b)
@@ -83,7 +84,7 @@ module Term where
   wkenT e (η t)      = η (wkenT e t)
   wkenT e (t >>= t₁) = wkenT e t >>= wkenT (keep e) t₁
 
-open Term
+open Tm public
 
 module NormalForm where
 
@@ -111,7 +112,39 @@ module NormalForm where
      wkenNf e (η n)     = η (wkenNf e n)
      wkenNf e (x >>= n) = wkenNe e x >>= wkenNf (keep e) n
 
-open NormalForm
+     lemma1 : ∀ {a b c} → (b ⇒ c) ⊲ a → c ⊲ a
+     lemma1 ⊲-refl = ⊲-⇒r ⊲-refl
+     lemma1 (⊲-⇒l x) = ⊲-⇒l (lemma1 x)
+     lemma1 (⊲-⇒r x) = ⊲-⇒r (lemma1 x)
+
+     lemma1C : ∀ {a b c} → (b ⇒ c) ⊲C a → c ⊲C a
+     lemma1C (ze x) = ze (lemma1 x)
+     lemma1C (su x) = su (lemma1C x)
+
+     neutrality : ∀ {a} {Γ} → Ne Γ a → a ⊲C Γ
+     neutrality (var x) = {!!}
+     neutrality (t ∙ u) = lemma1C (neutrality t) -- neutrality t
+
+
+
+     
+open NormalForm public
+
+open import Data.Empty renaming  (⊥ to Bottom)
+mutual
+
+  ∈Nf : ∀ {Γ} {a b} → Ne Γ a → Nf Γ b → Set
+  ∈Nf x (`λ x₁) = ?
+  ∈Nf x (x₁ ↑ x₂) = ?
+  ∈Nf x (up x₁ x₂) = ?
+  ∈Nf x (η x₁) = ?
+  ∈Nf x (x₁ >>= x₂) = ?
+
+  ∈Ne : ∀ {Γ} {a b} → Ne Γ a → Ne Γ b → Set
+  ∈Ne  {Γ = Γ} {a} {b} (var x) (var y) = Σ (a ≡ b) λ {refl → x ≡ y}
+  ∈Ne (var x)  (m ∙ u)                 = ∈Ne (var x) m
+  ∈Ne (n ∙ x) (var x₁) = Bottom
+  ∈Ne (n ∙ x) (m ∙ x₁) = ∈Ne n m
 
 module CoverMonad where
 
@@ -158,7 +191,7 @@ module CoverMonad where
   bindExp𝒞 f (up p m) = up (⊔-cong p ⊑-refl) (bindExp𝒞 f m)
 
 
-open CoverMonad
+open CoverMonad public
 
 module Interpretation where
 
@@ -187,7 +220,7 @@ module Interpretation where
   ⟦ Ø ⟧ₑ      = 𝟙'
   ⟦ Γ `, a ⟧ₑ = ⟦ Γ ⟧ₑ ×' ⟦ a ⟧
 
-open Interpretation
+open Interpretation public
 
 -- the real deal
 
