@@ -16,7 +16,7 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
       𝕓     :                 Type
       _⇒_   : (a b : Type)  → Type
       〈_〉_   : (a : Type) (ℓ : Label) → Type
-
+ 
     infixr 10 _⇒_
 
     -- Ctx as a snoc list of types
@@ -250,3 +250,74 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
       norm t = reify (eval t)
 
   open NbE
+
+  module NI where
+  
+    -- a label ℓ "protects" a type
+    -- this definition is straight from DCC (except prot𝕓)
+    data _≼_ (ℓ : Label) : Type → Set where
+      prot𝕓 : ℓ ≼ 𝕓
+      prot⇒ : ∀ {a b}    → ℓ ≼ b  → ℓ ≼ (a ⇒ b)
+      flows : ∀ {a} {ℓ'} → ℓ ⊑ ℓ' → ℓ ≼ (〈 a 〉 ℓ')
+      layer : ∀ {a} {ℓ'} → ℓ ≼ a  → ℓ ≼ (〈 a 〉 ℓ')
+
+    postulate
+      -- obviously holds, remove later
+      ⊑-trans : ∀{ℓ₁ ℓ₂ ℓ₃} → ℓ₁ ⊑ ℓ₂ → ℓ₂ ⊑ ℓ₃ → ℓ₁ ⊑ ℓ₃
+
+    -- a labelled type is protected at a level ℓ even if its sensitivity is raised
+    ≼-up : ∀ {ℓ ℓᴸ ℓᴴ} {a} → ℓ ≼ (〈 a 〉 ℓᴸ) → ℓᴸ ⊑ ℓᴴ → ℓ ≼ (〈 a 〉 ℓᴴ)
+    ≼-up (flows p) q = flows (⊑-trans p q)
+    ≼-up (layer p) q = layer p
+
+    -- if a function is protected at a level ℓ,
+    -- then its result is also protected at ℓ
+    ≼-res⇒ : ∀ {ℓ} {a b} → ℓ ≼ (a ⇒ b) → ℓ ≼ b
+    ≼-res⇒ (prot⇒ e) = e
+
+    -- labelled context (or context protected at ℓ)
+    data LCtx (ℓ : Label) : Ctx → Set where
+      nil  : LCtx ℓ Ø
+      cons : ∀ {Γ} {a} → LCtx ℓ Γ → ℓ ≼ a → LCtx ℓ (Γ `, a)
+
+    -- first order type
+    data FO : Type → Set where
+      base     : FO 𝕓
+      labld : ∀ {a} {ℓ} → FO a → FO (〈 a 〉 ℓ) 
+
+    -- given a context protected at ℓ,
+    -- variables produce values protected at ℓ
+    -- i.e., variables protect secrets
+    Var-Prot : ∀ {Γ} {a} {ℓ} → LCtx ℓ Γ → a ∈ Γ → ℓ ≼ a
+    Var-Prot (cons e x) ze = x
+    Var-Prot (cons e x) (su v) = Var-Prot e v
+
+    mutual
+
+      -- neutral forms protect secrets
+      Ne-Prot : ∀ {Γ} {a} {ℓ} → LCtx ℓ Γ → Ne a Γ → ℓ ≼ a
+      Ne-Prot e (var x) = Var-Prot e x
+      Ne-Prot e (x ∙ n) = ≼-res⇒ (Ne-Prot e x)
+      Ne-Prot e (p ↑ x) = ≼-up (Ne-Prot e x) p
+
+      -- normal forms (of first order types) protect secrets
+      Nf-Prot : ∀ {Γ} {a} {ℓ} → LCtx ℓ Γ → FO a → Nf a Γ → ℓ ≼ a
+      Nf-Prot e () (`λ n)
+      Nf-Prot e r (𝕓 x)         = prot𝕓
+      Nf-Prot e (labld r) (η n) = layer (Nf-Prot e r n)
+      Nf-Prot e r (x ≫= n) with Ne-Prot e x
+      Nf-Prot e r (x ≫= n) | flows p = flows p
+      Nf-Prot e r (x ≫= n) | layer p with Nf-Prot (cons e p) r n
+      Nf-Prot e r (x ≫= n) | layer p | flows q = flows q
+      Nf-Prot e r (x ≫= n) | layer p | layer q = layer q
+
+
+
+  
+  
+
+  
+
+  
+
+  
