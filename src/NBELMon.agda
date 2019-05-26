@@ -256,7 +256,6 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
     -- a label ℓ "protects" a type
     -- this definition is straight from DCC (except prot𝕓)
     data _≼_ (ℓ : Label) : Type → Set where
-      prot𝕓 : ℓ ≼ 𝕓
       prot⇒ : ∀ {a b}    → ℓ ≼ b  → ℓ ≼ (a ⇒ b)
       flows : ∀ {a} {ℓ'} → ℓ ⊑ ℓ' → ℓ ≼ (〈 a 〉 ℓ')
       layer : ∀ {a} {ℓ'} → ℓ ≼ a  → ℓ ≼ (〈 a 〉 ℓ')
@@ -303,21 +302,10 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
       -- normal forms (of first order types) protect secrets
       Nf-Prot : ∀ {Γ} {a} {ℓ} → LCtx ℓ Γ → FO a → Nf a Γ → ℓ ≼ a
       Nf-Prot e () (`λ n)
-      Nf-Prot e r (𝕓 x)         = prot𝕓
+      Nf-Prot e r (𝕓 x)         = Ne-Prot e x
       Nf-Prot e (labld r) (η n) = layer (Nf-Prot e r n)
       Nf-Prot e r (x ≫= n) with Ne-Prot e x
       Nf-Prot e r (x ≫= n) | flows p = flows p
       Nf-Prot e r (x ≫= n) | layer p with Nf-Prot (cons e p) r n
       Nf-Prot e r (x ≫= n) | layer p | flows q = flows q
-      Nf-Prot e r (x ≫= n) | layer p | layer q = layer q
-
-
-
-  
-  
-
-  
-
-  
-
-  
+      Nf-Prot e r (x ≫= n) | layer p | layer q = layer q  
