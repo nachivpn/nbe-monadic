@@ -406,8 +406,8 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     -- 
     data Neg : Type → Set where
-      𝟙 : Neg 𝟙
-      𝕓 : Neg 𝕓
+      𝟙    : Neg 𝟙
+      𝕓    : Neg 𝕓
       ⟨_⟩_ : ∀ a → (ℓ : Label) → Neg (〈 a 〉 ℓ)
     
     -- given a context protected at ℓ,
@@ -428,7 +428,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       -- normal forms (of first order types) protect secrets
       Nf-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → Neg a → Ground a → Nf a Γ → a ⊣ ℓ
       Nf-Prot e p g  unit    = {!!}
-      Nf-Prot e () g (`λ n)
+      Nf-Prot e p () (`λ n)
       Nf-Prot e p g (𝕓 x)    = Ne-Prot e x
       Nf-Prot e (⟨ a ⟩ .ℓ) (〈 g 〉 ℓ) (η n) = layer (Nf-Prot e {!!} g n)
       Nf-Prot e p g (x ≫= n) with Ne-Prot e x
