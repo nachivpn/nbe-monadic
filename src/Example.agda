@@ -59,14 +59,38 @@ module Example where
 
   open import Relation.Binary.PropositionalEquality
   open import Data.Sum
-  
+
+  private
+    lemma₁ : ∀ {a b} → ¬ (Ne (a ⇒ b) (Ø `, (〈 Bool 〉 H)))
+    lemma₁ (var (su ()))
+    lemma₁ (n ∙ _) = lemma₁ n
+
+    lemma₂ : ∀ {a b} → ¬ (Ne (a + b) (Ø `, (〈 Bool 〉 H)))
+    lemma₂ (var (su ()))
+    lemma₂ (n ∙ _) = lemma₁ n
+
   main₃ : (n : Nf (〈 Bool 〉 H ⇒ Bool) Ø)
-    → (n ≡ `λ True) ⊎ (n ≡ `λ False)
-  main₃ (`λ (inl unit)) = inj₁ refl
-  main₃ (`λ (inl (case (var (su ())) n n₁)))
-  main₃ (`λ (inl (case (x ∙ x₁) n n₁))) = {!!} -- by neutrality
-  main₃ (`λ (inr unit)) = inj₂ refl
-  main₃ (`λ (inr (case x n n₁))) = {!!} --by neutrality
-  main₃ (`λ (case (var x) n n₁)) = {!!} --by neutrality
-  main₃ (`λ (case (x ∙ x₁) n n₁)) = {!!} --by neutrality
-  main₃ (case x n n₁) = {!x!} -- by neutrality
+        → (n ≡ `λ True) ⊎ (n ≡ `λ False)
+  main₃ (`λ (inl unit))         = inj₁ refl
+  main₃ (`λ (inl (case n _ _))) = ⊥-elim (lemma₂ n)
+  main₃ (`λ (inr unit))         = inj₂ refl
+  main₃ (`λ (inr (case n _ _))) = ⊥-elim (lemma₂ n)
+  main₃ (`λ (case n _ _))       = ⊥-elim (lemma₂ n)
+  main₃ (case n _ _)            = ⊥-elim (emptyNe n)
+
+  private
+    lemma₃ : ∀ {a} → ¬ (Ne (〈 a 〉 L) (Ø `, (〈 Bool 〉 H)))
+    lemma₃ (var (su ()))
+    lemma₃ (n ∙ _)    = lemma₁ n
+    lemma₃ (⊑ᴸᴴ-L ↑ n) = lemma₃ n
+
+  main₄ : (n : Nf (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
+        → (n ≡ `λ (η True)) ⊎ (n ≡ `λ (η False))
+  main₄ (`λ (η (inl unit)))         = inj₁ refl
+  main₄ (`λ (η (inl (case n _ _)))) = ⊥-elim (lemma₂ n)
+  main₄ (`λ (η (inr unit)))         = inj₂ refl
+  main₄ (`λ (η (inr (case n _ _)))) = ⊥-elim (lemma₂ n)
+  main₄ (`λ (η (case n _ _)))       = ⊥-elim (lemma₂ n)
+  main₄ (`λ (n ≫= _))     = ⊥-elim (lemma₃ n)
+  main₄ (`λ (case n _ _)) = ⊥-elim (lemma₂ n)
+  main₄ (case n _ _)      = ⊥-elim (emptyNe n)

@@ -9,15 +9,13 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
   module TypeModule where
 
-    -- Types are either function space and
-    -- a base type for every i ∈ I
     data Type  : Set where
       𝟙     :                 Type
       𝕓     :                 Type
       _⇒_   : (a b : Type)  → Type
       _+_   : (a b : Type)  → Type
       〈_〉_   : (a : Type) (ℓ : Label) → Type
- 
+
     infixr 10 _⇒_
 
     -- Ctx as a snoc list of types
@@ -89,7 +87,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     wkenTm e (inl t) = inl (wkenTm e t)
     wkenTm e (inr t) = inr (wkenTm e t)
     wkenTm e (case t t₁ t₂) = case (wkenTm e t) (wkenTm (keep e) t₁) (wkenTm (keep e) t₂)
-    
+
   open TermM public
 
   module NormalForm where
@@ -223,7 +221,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   wken𝒟 : ∀ {A} {Γ Δ} → Γ ⊆ Δ → 𝒟 A Δ → 𝒟 A Γ
   wken𝒟 {A} e (return x) = return (Wken A e x)
   wken𝒟 e (branch x c₁ c₂) = branch (wkenNe e x) (wken𝒟 (keep e) c₁) (wken𝒟 (keep e) c₂)
-    
+
   𝒟ᴾ : 𝒫 → 𝒫
   𝒟ᴾ A = record { In = 𝒟 A ; Wken = wken𝒟 }
 
@@ -279,7 +277,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   run𝒟Nf : ∀ {a : Type} → 𝒟ᴾ (Nfᴾ a) →∙ (Nfᴾ a)
   run𝒟Nf (return x) = x
   run𝒟Nf (branch x m m₁) = case x (run𝒟Nf m) (run𝒟Nf m₁)
-      
+
   run𝒟 : ∀ {a : Type} → 𝒟ᴾ ⟦ a ⟧ →∙ ⟦ a ⟧
   run𝒟 {𝟙}      _ = tt
   run𝒟 {𝕓}      m = run𝒟Nf m
@@ -297,7 +295,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     run𝒟𝒞 : 𝒟ᴾ (𝒞ᴾ ℓ ⟦ a ⟧) →∙ (𝒞ᴾ ℓ ⟦ a ⟧)
     run𝒟𝒞 (return x) = x
     run𝒟𝒞 (branch x c₁ c₂) = branch x (run𝒟𝒞 c₁) (run𝒟𝒞 c₂)
-    
+
   open DecMonadOps
   module NbE where
 
@@ -332,18 +330,18 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       reifyVal {a ⇒ b} f  = `λ (reifyVal (f (drop ⊆-refl) (reflect {a} (var ze))))
       reifyVal {〈 a 〉 ℓ} m = reifyVal𝒞 m
       reifyVal {a + b}  m = run𝒟Nf (map𝒟 reifySum m)
-      
+
       reifyVal𝒟 : ∀ {a} → 𝒟ᴾ ⟦ a ⟧ →∙ Nfᴾ a
-      reifyVal𝒟 {a} m = run𝒟Nf {a} (map𝒟 reifyVal m) 
+      reifyVal𝒟 {a} m = run𝒟Nf {a} (map𝒟 reifyVal m)
 
       reifySum : ∀ {a b} → (⟦ a ⟧ +ᴾ ⟦ b ⟧) →∙ Nfᴾ (a + b)
       reifySum {a} {b} = [ inl ∘ reifyVal {a} , inr ∘ reifyVal {b} ]′
-      
+
       reifyVal𝒞 : ∀ {a} {ℓ} → 𝒞ᴾ ℓ ⟦ a ⟧ →∙ Nfᴾ (〈 a 〉 ℓ)
       reifyVal𝒞 (return x) = η (reifyVal x)
       reifyVal𝒞 (bind x m) = x ≫= reifyVal𝒞 m
       reifyVal𝒞 (branch x c₁ c₂) = case x (reifyVal𝒞 c₁) (reifyVal𝒞 c₂)
-      
+
       reflect : ∀ {a} → Neᴾ a →∙ ⟦ a ⟧
       reflect {𝟙}      n = tt
       reflect {𝕓}      n = 𝕓 n
@@ -352,7 +350,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       reflect {a + b}  n =
         branch n
           (return (inj₁ (reflect {a} (var ze))))
-          (return (inj₂ (reflect {b} (var ze))))   
+          (return (inj₂ (reflect {b} (var ze))))
 
       idSubst :  ∀ Γ → ⟦ Γ ⟧ₑ .In Γ
       idSubst Ø        = tt
@@ -367,7 +365,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   open NbE public
 
   module NI where
-  
+
     -- ℓ ⊣ a to be read as: the type a is protected at label ℓ
     -- this definition is straight from DCC (except prot𝕓)
     data _⊣_ : Type → Label → Set where
@@ -404,12 +402,11 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       〈_〉_ : ∀ {a} → Ground a → (ℓ : Label) → Ground (〈 a 〉 ℓ)
       _+_ : ∀ {a b} → Ground a → Ground b → Ground (a + b)
 
-    -- 
     data Neg : Type → Set where
       𝟙    : Neg 𝟙
       𝕓    : Neg 𝕓
       ⟨_⟩_ : ∀ a → (ℓ : Label) → Neg (〈 a 〉 ℓ)
-    
+
     -- given a context protected at ℓ,
     -- variables produce values protected at ℓ
     -- i.e., variables protect secrets
@@ -465,18 +462,18 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     ⊣ᶜ-dec (Γ `, a) ℓ | yes p | no ¬q = no (λ {(Γ `, p) → ¬q Γ})
     ⊣ᶜ-dec (Γ `, a) ℓ | no ¬p = no (λ { (Γ `, p) → ¬p p})
     -}
-        
+
   open NI public
 
   module Neutrality where
 
     open import Data.Empty
     open import Relation.Nullary
-    
+
     emptyNe : ∀ {a} → ¬ (Ne a Ø)
     emptyNe (var ())
     emptyNe (x ∙ _) = emptyNe x
     emptyNe (x ↑ n) = emptyNe n
 
   open Neutrality public
-  
+
