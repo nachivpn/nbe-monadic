@@ -6,9 +6,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   Label = RB.Preorder.Carrier Pre
   _⊑_   = RB.Preorder._∼_ Pre
 
-  postulate ⊑-dec : RB.Decidable _⊑_
-  postulate ⊑-refl : RB.Reflexive _⊑_
-  module TypeM where
+  module TypeModule where
 
     -- Types are either function space and
     -- a base type for every i ∈ I
@@ -24,7 +22,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       Ø    : Ctx
       _`,_ : Ctx → Type → Ctx
 
-  open TypeM public
+  open TypeModule public
 
   module Weakening where
 
@@ -72,7 +70,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       _↑_   : ∀ {ℓᴸ ℓᴴ} {Γ} {a} → ℓᴸ ⊑ ℓᴴ → Term (〈 a 〉 ℓᴸ) Γ → Term (〈 a 〉 ℓᴴ) Γ
       η     : ∀ {ℓ} {Γ} {a}    → Term a Γ → Term (〈 a 〉 ℓ) Γ
       _≫=_ : ∀ {ℓ} {Γ} {a b} → Term (〈 a 〉 ℓ) Γ → Term (〈 b 〉 ℓ) (Γ `, a) → Term (〈 b 〉 ℓ) Γ
-
 
     wkenᵀ : ∀ {a} {Γ Δ} → Γ ⊆ Δ → Term a Δ → Term a Γ
     wkenᵀ e (`λ t)     = `λ (wkenᵀ (keep e) t)
@@ -262,7 +259,10 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     postulate
       -- obviously holds, remove later
-      ⊑-trans : ∀{ℓ₁ ℓ₂ ℓ₃} → ℓ₁ ⊑ ℓ₂ → ℓ₂ ⊑ ℓ₃ → ℓ₁ ⊑ ℓ₃
+      ⊑-trans : RB.Transitive _⊑_
+      ⊑-dec  : RB.Decidable _⊑_
+      ⊑-refl : RB.Reflexive _⊑_
+
 
     -- a labelled type is protected at a level ℓ even if its sensitivity is raised
     ≼-up : ∀ {ℓ ℓᴸ ℓᴴ} {a} → ℓ ≼ (〈 a 〉 ℓᴸ) → ℓᴸ ⊑ ℓᴴ → ℓ ≼ (〈 a 〉 ℓᴴ)
@@ -309,7 +309,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       Nf-Prot e r (x ≫= n) | flows p = flows p
       Nf-Prot e r (x ≫= n) | layer p with Nf-Prot (e `, p) r n
       Nf-Prot e r (x ≫= n) | layer p | flows q = flows q
-      Nf-Prot e r (x ≫= n) | layer p | layer q = layer q  
+      Nf-Prot e r (x ≫= n) | layer p | layer q = layer q
 
     open import Data.Empty
     open import Relation.Nullary

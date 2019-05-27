@@ -29,9 +29,9 @@ module Example where
     ⊑ᴸᴴ-Preorder = record { Carrier = LH
                           ; _≈_ = _≡ᴸᴴ_
                           ; _∼_ = _⊑ᴸᴴ_
-                          ; isPreorder = record { isEquivalence = record { refl = P.refl ; sym = P.sym ; trans = P.trans }
-                          ; reflexive     = λ {P.refl → ⊑ᴸᴴ-refl}
-                          ; trans         = ⊑ᴸᴴ-trans } }
+                          ; isPreorder = record { isEquivalence = P.isEquivalence
+                                                ; reflexive     = λ {P.refl → ⊑ᴸᴴ-refl}
+                                                ; trans         = ⊑ᴸᴴ-trans } }
 
   open TwoPoint
 
@@ -42,3 +42,6 @@ module Example where
   main : ¬ (Nf (〈 𝕓 〉 L) ( Ø `, (〈 𝕓 〉 H)))
   main nf with Nf-Prot (Ø `, flows ⊑ᴸᴴ-refl) (labld base) nf
   main nf | flows ()
+
+  main₂ : ¬ (Nf (〈 𝕓 〉 H ⇒ 〈 𝕓 〉 L) Ø)
+  main₂ (`λ nf) = main nf
