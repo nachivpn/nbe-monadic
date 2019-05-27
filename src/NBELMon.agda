@@ -1,14 +1,14 @@
-open import Relation.Binary.Lattice
+import Relation.Binary as RB
 open import Level
 
-module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
+module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
-  import Relation.Binary as B
+  Label = RB.Preorder.Carrier Pre
+  _⊑_   = RB.Preorder._∼_ Pre
 
-  Label = JoinSemilattice.Carrier JSL
-  _⊑_   = JoinSemilattice._≤_ JSL
-
-  module Type where
+  postulate ⊑-dec : RB.Decidable _⊑_
+  postulate ⊑-refl : RB.Reflexive _⊑_
+  module TypeM where
 
     -- Types are either function space and
     -- a base type for every i ∈ I
@@ -24,7 +24,7 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
       Ø    : Ctx
       _`,_ : Ctx → Type → Ctx
 
-  open Type
+  open TypeM public
 
   module Weakening where
 
@@ -37,17 +37,17 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
       drop : ∀ {T Γ Δ} → Γ ⊆ Δ → (Γ `, T) ⊆ Δ
 
     -- Weakenings are a preorder relation
-    ⊆-refl : B.Reflexive _⊆_
+    ⊆-refl : RB.Reflexive _⊆_
     ⊆-refl {Ø}      = base
     ⊆-refl {Γ `, T} = keep ⊆-refl
 
-    ⊆-trans : B.Transitive _⊆_
+    ⊆-trans : RB.Transitive _⊆_
     ⊆-trans base q = q
     ⊆-trans (keep p) (keep q) = keep (⊆-trans p q)
     ⊆-trans (keep p) (drop q) = drop (⊆-trans p q)
     ⊆-trans (drop p) q        = drop (⊆-trans p q)
 
-  open Weakening
+  open Weakening public
 
   module Variable where
 
@@ -61,9 +61,9 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
     wkenⱽ (keep e) (su v) = su (wkenⱽ e v)
     wkenⱽ (drop e) v      = su (wkenⱽ e v)
 
-  open Variable
+  open Variable public
 
-  module Term where
+  module TermM where
 
     data Term : Type → Ctx → Set where
       `λ    : ∀ {Γ} {a b} → Term b (Γ `, a) → Term (a ⇒ b) Γ
@@ -82,7 +82,7 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
     wkenᵀ e (t ≫= k)  = wkenᵀ e t ≫= wkenᵀ (keep e) k
     wkenᵀ e (x ↑ t)   = x ↑ wkenᵀ e t
 
-  open Term
+  open TermM public
 
   module NormalForm where
 
@@ -110,7 +110,7 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
     wkenNf e (𝕓 n)     = 𝕓 (wkenNe e n)
     wkenNf e (x ≫= m) = (wkenNe e x) ≫= wkenNf (keep e) m
 
-  open NormalForm
+  open NormalForm public
 
   open import Data.Product
   open import Data.Unit hiding (_≤_)
@@ -182,7 +182,7 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
     up𝒞 L⊑H (return x)  = return x
     up𝒞 L⊑H (bind n k)  = bind (L⊑H ↑ n) (up𝒞 L⊑H k)
 
-  open CoverMonad
+  open CoverMonad public
 
   module Interpretation where
 
@@ -207,7 +207,7 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
     ⟦ Ø ⟧ₑ      = 𝟙𝒫
     ⟦ Γ `, a ⟧ₑ = ⟦ Γ ⟧ₑ ×𝒫 ⟦ a ⟧
 
-  open Interpretation
+  open Interpretation public
 
   module NbE where
 
@@ -249,7 +249,7 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
       norm : ∀ {a} → Term𝒫 a →∙ Nf𝒫 a
       norm t = reify (eval t)
 
-  open NbE
+  open NbE public
 
   module NI where
   
@@ -274,10 +274,11 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
     ≼-res⇒ : ∀ {ℓ} {a b} → ℓ ≼ (a ⇒ b) → ℓ ≼ b
     ≼-res⇒ (prot⇒ e) = e
 
+
     -- labelled context (or context protected at ℓ)
     data LCtx (ℓ : Label) : Ctx → Set where
-      nil  : LCtx ℓ Ø
-      cons : ∀ {Γ} {a} → LCtx ℓ Γ → ℓ ≼ a → LCtx ℓ (Γ `, a)
+      Ø    : LCtx ℓ Ø
+      _`,_ : ∀ {Γ} {a} → LCtx ℓ Γ → ℓ ≼ a → LCtx ℓ (Γ `, a)
 
     -- first order type
     data FO : Type → Set where
@@ -288,8 +289,8 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
     -- variables produce values protected at ℓ
     -- i.e., variables protect secrets
     Var-Prot : ∀ {Γ} {a} {ℓ} → LCtx ℓ Γ → a ∈ Γ → ℓ ≼ a
-    Var-Prot (cons e x) ze = x
-    Var-Prot (cons e x) (su v) = Var-Prot e v
+    Var-Prot (e `, a) ze = a
+    Var-Prot (e `, a) (su v) = Var-Prot e v
 
     mutual
 
@@ -306,6 +307,31 @@ module NBELMon (JSL : JoinSemilattice 0ℓ 0ℓ 0ℓ)where
       Nf-Prot e (labld r) (η n) = layer (Nf-Prot e r n)
       Nf-Prot e r (x ≫= n) with Ne-Prot e x
       Nf-Prot e r (x ≫= n) | flows p = flows p
-      Nf-Prot e r (x ≫= n) | layer p with Nf-Prot (cons e p) r n
+      Nf-Prot e r (x ≫= n) | layer p with Nf-Prot (e `, p) r n
       Nf-Prot e r (x ≫= n) | layer p | flows q = flows q
       Nf-Prot e r (x ≫= n) | layer p | layer q = layer q  
+
+    open import Data.Empty
+    open import Relation.Nullary
+
+    ≼-dec : RB.Decidable _≼_
+    ≼-dec ℓ 𝕓 = no (λ ())
+    ≼-dec ℓ (a ⇒ b)   with ≼-dec ℓ b
+    ≼-dec ℓ (a ⇒ b) | yes p = yes (prot⇒ p)
+    ≼-dec ℓ (a ⇒ b) | no ¬p = no (λ {(prot⇒ x) → ¬p x})
+    ≼-dec ℓ (〈 a 〉 ℓ′) with ⊑-dec ℓ ℓ′
+    ≼-dec ℓ (〈 a 〉 ℓ′) | yes p = yes (flows p)
+    ≼-dec ℓ (〈 a 〉 ℓ′) | no ¬p with ≼-dec ℓ a
+    ≼-dec ℓ (〈 a 〉 ℓ′) | no ¬p | yes p = yes (layer p)
+    ≼-dec ℓ (〈 a 〉 ℓ′) | no ¬p | no ¬q = no (λ { (flows x) → ¬p x ; (layer x) → ¬q x})
+
+    LCtx-dec : RB.Decidable LCtx
+    LCtx-dec ℓ Ø = yes Ø
+    LCtx-dec ℓ (Γ `, a) with ≼-dec ℓ a
+    LCtx-dec ℓ (Γ `, a) | yes p
+      with LCtx-dec ℓ Γ
+    LCtx-dec ℓ (Γ `, a) | yes p | yes q = yes (q `, p)
+    LCtx-dec ℓ (Γ `, a) | yes p | no ¬q = no (λ {(Γ `, p) → ¬q Γ})
+    LCtx-dec ℓ (Γ `, a) | no ¬p = no (λ { (Γ `, p) → ¬p p})
+
+  open NI public
