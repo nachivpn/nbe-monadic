@@ -252,10 +252,10 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   
     -- a label ℓ "protects" a type
     -- this definition is straight from DCC (except prot𝕓)
-    data _≼_ (ℓ : Label) : Type → Set where
-      prot⇒ : ∀ {a b}    → ℓ ≼ b  → ℓ ≼ (a ⇒ b)
-      flows : ∀ {a} {ℓ'} → ℓ ⊑ ℓ' → ℓ ≼ (〈 a 〉 ℓ')
-      layer : ∀ {a} {ℓ'} → ℓ ≼ a  → ℓ ≼ (〈 a 〉 ℓ')
+    data _⊣_ : Type → Label → Set where
+      prot⇒ : ∀ {ℓ} {a b}    → b ⊣ ℓ  → (a ⇒ b) ⊣ ℓ
+      flows : ∀ {ℓ} {a} {ℓ'} → ℓ ⊑ ℓ' → (〈 a 〉 ℓ') ⊣ ℓ
+      layer : ∀ {ℓ} {a} {ℓ'} → a ⊣ ℓ  → (〈 a 〉 ℓ') ⊣ ℓ
 
     postulate
       -- obviously holds, remove later
@@ -265,46 +265,46 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
 
     -- a labelled type is protected at a level ℓ even if its sensitivity is raised
-    ≼-up : ∀ {ℓ ℓᴸ ℓᴴ} {a} → ℓ ≼ (〈 a 〉 ℓᴸ) → ℓᴸ ⊑ ℓᴴ → ℓ ≼ (〈 a 〉 ℓᴴ)
+    ≼-up : ∀ {ℓ ℓᴸ ℓᴴ} {a} → (〈 a 〉 ℓᴸ) ⊣ ℓ → ℓᴸ ⊑ ℓᴴ → (〈 a 〉 ℓᴴ) ⊣ ℓ
     ≼-up (flows p) q = flows (⊑-trans p q)
     ≼-up (layer p) q = layer p
 
     -- if a function is protected at a level ℓ,
     -- then its result is also protected at ℓ
-    ≼-res⇒ : ∀ {ℓ} {a b} → ℓ ≼ (a ⇒ b) → ℓ ≼ b
+    ≼-res⇒ : ∀ {ℓ} {a b} → (a ⇒ b) ⊣ ℓ → b ⊣ ℓ
     ≼-res⇒ (prot⇒ e) = e
 
 
     -- labelled context (or context protected at ℓ)
-    data LCtx (ℓ : Label) : Ctx → Set where
-      Ø    : LCtx ℓ Ø
-      _`,_ : ∀ {Γ} {a} → LCtx ℓ Γ → ℓ ≼ a → LCtx ℓ (Γ `, a)
+    data _⊣ᶜ_ : Ctx → Label → Set where
+      Ø    : ∀ {ℓ} → Ø ⊣ᶜ ℓ
+      _`,_ : ∀ {ℓ} {Γ} {a} → Γ ⊣ᶜ ℓ → a ⊣ ℓ → (Γ `, a) ⊣ᶜ ℓ
 
     -- first order type
-    data FO : Type → Set where
-      base     : FO 𝕓
-      labld : ∀ {a} {ℓ} → FO a → FO (〈 a 〉 ℓ) 
+    data Ground : Type → Set where
+      𝕓   : Ground 𝕓
+      〈_〉_ : ∀ {a} → Ground a → (ℓ : Label) → Ground (〈 a 〉 ℓ) 
 
     -- given a context protected at ℓ,
     -- variables produce values protected at ℓ
     -- i.e., variables protect secrets
-    Var-Prot : ∀ {Γ} {a} {ℓ} → LCtx ℓ Γ → a ∈ Γ → ℓ ≼ a
+    Var-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → a ∈ Γ → a ⊣ ℓ
     Var-Prot (e `, a) ze = a
     Var-Prot (e `, a) (su v) = Var-Prot e v
 
     mutual
 
       -- neutral forms protect secrets
-      Ne-Prot : ∀ {Γ} {a} {ℓ} → LCtx ℓ Γ → Ne a Γ → ℓ ≼ a
+      Ne-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → Ne a Γ → a ⊣ ℓ
       Ne-Prot e (var x) = Var-Prot e x
       Ne-Prot e (x ∙ n) = ≼-res⇒ (Ne-Prot e x)
       Ne-Prot e (p ↑ x) = ≼-up (Ne-Prot e x) p
 
       -- normal forms (of first order types) protect secrets
-      Nf-Prot : ∀ {Γ} {a} {ℓ} → LCtx ℓ Γ → FO a → Nf a Γ → ℓ ≼ a
+      Nf-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → Ground a → Nf a Γ → a ⊣ ℓ
       Nf-Prot e () (`λ n)
       Nf-Prot e r (𝕓 x)         = Ne-Prot e x
-      Nf-Prot e (labld r) (η n) = layer (Nf-Prot e r n)
+      Nf-Prot e (〈 r 〉 ℓ) (η n) = layer (Nf-Prot e r n)
       Nf-Prot e r (x ≫= n) with Ne-Prot e x
       Nf-Prot e r (x ≫= n) | flows p = flows p
       Nf-Prot e r (x ≫= n) | layer p with Nf-Prot (e `, p) r n
@@ -314,24 +314,24 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     open import Data.Empty
     open import Relation.Nullary
 
-    ≼-dec : RB.Decidable _≼_
-    ≼-dec ℓ 𝕓 = no (λ ())
-    ≼-dec ℓ (a ⇒ b)   with ≼-dec ℓ b
-    ≼-dec ℓ (a ⇒ b) | yes p = yes (prot⇒ p)
-    ≼-dec ℓ (a ⇒ b) | no ¬p = no (λ {(prot⇒ x) → ¬p x})
-    ≼-dec ℓ (〈 a 〉 ℓ′) with ⊑-dec ℓ ℓ′
-    ≼-dec ℓ (〈 a 〉 ℓ′) | yes p = yes (flows p)
-    ≼-dec ℓ (〈 a 〉 ℓ′) | no ¬p with ≼-dec ℓ a
-    ≼-dec ℓ (〈 a 〉 ℓ′) | no ¬p | yes p = yes (layer p)
-    ≼-dec ℓ (〈 a 〉 ℓ′) | no ¬p | no ¬q = no (λ { (flows x) → ¬p x ; (layer x) → ¬q x})
+    ⊣-dec : RB.Decidable _⊣_
+    ⊣-dec 𝕓 ℓ = no (λ ())
+    ⊣-dec (a ⇒ b) ℓ  with ⊣-dec b ℓ
+    ⊣-dec (a ⇒ b) ℓ | yes p = yes (prot⇒ p)
+    ⊣-dec (a ⇒ b) ℓ | no ¬p = no (λ {(prot⇒ x) → ¬p x})
+    ⊣-dec (〈 a 〉 ℓ′) ℓ with ⊑-dec ℓ ℓ′
+    ⊣-dec (〈 a 〉 ℓ′) ℓ | yes p = yes (flows p)
+    ⊣-dec (〈 a 〉 ℓ′) ℓ | no ¬p with ⊣-dec a ℓ
+    ⊣-dec (〈 a 〉 ℓ′) ℓ | no ¬p | yes p = yes (layer p)
+    ⊣-dec (〈 a 〉 ℓ′) ℓ | no ¬p | no ¬q = no (λ { (flows x) → ¬p x ; (layer x) → ¬q x})
 
-    LCtx-dec : RB.Decidable LCtx
-    LCtx-dec ℓ Ø = yes Ø
-    LCtx-dec ℓ (Γ `, a) with ≼-dec ℓ a
-    LCtx-dec ℓ (Γ `, a) | yes p
-      with LCtx-dec ℓ Γ
-    LCtx-dec ℓ (Γ `, a) | yes p | yes q = yes (q `, p)
-    LCtx-dec ℓ (Γ `, a) | yes p | no ¬q = no (λ {(Γ `, p) → ¬q Γ})
-    LCtx-dec ℓ (Γ `, a) | no ¬p = no (λ { (Γ `, p) → ¬p p})
+    ⊣ᶜ-dec : RB.Decidable _⊣ᶜ_
+    ⊣ᶜ-dec Ø ℓ = yes Ø
+    ⊣ᶜ-dec (Γ `, a) ℓ with ⊣-dec a ℓ
+    ⊣ᶜ-dec (Γ `, a) ℓ | yes p
+      with ⊣ᶜ-dec Γ ℓ
+    ⊣ᶜ-dec (Γ `, a) ℓ | yes p | yes q = yes (q `, p)
+    ⊣ᶜ-dec (Γ `, a) ℓ | yes p | no ¬q = no (λ {(Γ `, p) → ¬q Γ})
+    ⊣ᶜ-dec (Γ `, a) ℓ | no ¬p = no (λ { (Γ `, p) → ¬p p})
 
   open NI public

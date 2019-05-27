@@ -40,7 +40,7 @@ module Example where
   open import Relation.Nullary
 
   main : ¬ (Nf (〈 𝕓 〉 L) ( Ø `, (〈 𝕓 〉 H)))
-  main nf with Nf-Prot (Ø `, flows ⊑ᴸᴴ-refl) (labld base) nf
+  main nf with Nf-Prot (Ø `, flows ⊑ᴸᴴ-refl) (〈 𝕓 〉 L) nf
   main nf | flows ()
 
   main₂ : ¬ (Nf (〈 𝕓 〉 H ⇒ 〈 𝕓 〉 L) Ø)
