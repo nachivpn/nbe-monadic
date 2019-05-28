@@ -62,12 +62,14 @@ module Example where
 
   private
     lemma₁ : ∀ {a b} → ¬ (Ne (a ⇒ b) (Ø `, (〈 Bool 〉 H)))
-    lemma₁ (var (su ()))
-    lemma₁ (n ∙ _) = lemma₁ n
+    lemma₁ n with neutrality n
+    lemma₁ n | here ()
+    lemma₁ n | there ()
 
     lemma₂ : ∀ {a b} → ¬ (Ne (a + b) (Ø `, (〈 Bool 〉 H)))
-    lemma₂ (var (su ()))
-    lemma₂ (n ∙ _) = lemma₁ n
+    lemma₂ n with neutrality n
+    lemma₂ n | here ()
+    lemma₂ n | there ()
 
   main₃ : (n : Nf (〈 Bool 〉 H ⇒ Bool) Ø)
         → (n ≡ `λ True) ⊎ (n ≡ `λ False)
@@ -80,9 +82,9 @@ module Example where
 
   private
     lemma₃ : ∀ {a} → ¬ (Ne (〈 a 〉 L) (Ø `, (〈 Bool 〉 H)))
-    lemma₃ (var (su ()))
-    lemma₃ (n ∙ _)    = lemma₁ n
-    lemma₃ (⊑ᴸᴴ-L ↑ n) = lemma₃ n
+    lemma₃ n with neutrality n
+    lemma₃ n | here (suup ())
+    lemma₃ n | there ()
 
   main₄ : (n : Nf (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
         → (n ≡ `λ (η True)) ⊎ (n ≡ `λ (η False))
@@ -95,6 +97,6 @@ module Example where
   main₄ (`λ (case n _ _)) = ⊥-elim (lemma₂ n)
   main₄ (case n _ _)      = ⊥-elim (emptyNe n)
 
-  main₅ : (n : Term (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
-        → (norm n ≡ `λ (η True)) ⊎ (norm n ≡ `λ (η False))
-  main₅ n = main₄ (norm n)
+  main₅ : (t : Term (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
+        → (norm t ≡ `λ (η True)) ⊎ (norm t ≡ `λ (η False))
+  main₅ t = main₄ (norm t)
