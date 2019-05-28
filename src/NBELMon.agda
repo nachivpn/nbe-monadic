@@ -124,6 +124,21 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     wkenNf e (inr n)   = inr (wkenNf e n)
     wkenNf e (case x n₁ n₂) = case (wkenNe e x) (wkenNf (keep e) n₁) (wkenNf (keep e) n₂)
 
+    qNf : ∀ {a} {Γ} → Nf a Γ → Term a Γ
+    qNf unit = unit
+    qNf (`λ n) = `λ (qNf n)
+    qNf (𝕓 x)  = qNe x
+    qNf (η n)  = η (qNf n)
+    qNf (x ≫= n) = (qNe x) ≫= (qNf n)
+    qNf (inl n) = inl (qNf n)
+    qNf (inr n) = inr (qNf n)
+    qNf (case n c₁ c₂) = case (qNe n) (qNf c₁) (qNf c₂)
+
+    qNe : ∀ {a} {Γ} → Ne a Γ → Term a Γ
+    qNe (var x) = var x
+    qNe (t ∙ u) = (qNe t) ∙ (qNf u)
+    qNe (c ↑ t) = c ↑ (qNe t)
+
   open NormalForm public
 
   open import Data.Product
@@ -476,4 +491,3 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     emptyNe (x ↑ n) = emptyNe n
 
   open Neutrality public
-

@@ -94,3 +94,7 @@ module Example where
   main₄ (`λ (n ≫= _))     = ⊥-elim (lemma₃ n)
   main₄ (`λ (case n _ _)) = ⊥-elim (lemma₂ n)
   main₄ (case n _ _)      = ⊥-elim (emptyNe n)
+
+  main₅ : (n : Term (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
+        → (norm n ≡ `λ (η True)) ⊎ (norm n ≡ `λ (η False))
+  main₅ n = main₄ (norm n)
