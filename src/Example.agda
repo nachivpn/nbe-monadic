@@ -78,6 +78,10 @@ module Example where
   main₃ (`λ (case n _ _))       = ⊥-elim (lemma₂ n)
   main₃ (case n _ _)            = ⊥-elim (emptyNe n)
 
+  main₃₅ : (e : Term (〈 Bool 〉 H ⇒ Bool) Ø)
+         → (norm e ≡ `λ True) ⊎ (norm e ≡ `λ False)
+  main₃₅ e = main₃ (norm e)
+
   private
     lemma₃ : ∀ {a} → ¬ (Ne (〈 a 〉 L) (Ø `, (〈 Bool 〉 H)))
     lemma₃ (var (su ()))
@@ -98,3 +102,20 @@ module Example where
   main₅ : (n : Term (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
         → (norm n ≡ `λ (η True)) ⊎ (norm n ≡ `λ (η False))
   main₅ n = main₄ (norm n)
+
+
+  true : ∀ {Γ} → Term Bool Γ
+  true = inl unit
+
+  false : ∀ {Γ} → Term Bool Γ
+  false = inr unit
+
+  example : ∀ {τ} → Term (〈 Bool 〉 L ⇒ τ ⇒ τ ⇒ 〈 τ 〉 H) Ø
+  example =
+    `λ (`λ (`λ ( ⊑ᴸᴴ-H ↑ ((var (su (su ze))) ≫=
+           case (var ze)
+                (η (var (su (su ze))))
+                (η (var (su (su (su ze)))))))))
+  
+
+  p = norm (example ∙ η false ∙ true ∙ false)
