@@ -4,8 +4,11 @@ open import Level
 
 module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
-  Label = RB.Preorder.Carrier Pre
-  _⊑_   = RB.Preorder._∼_ Pre
+  Label   = RB.Preorder.Carrier Pre
+  
+  _⊑_     = RB.Preorder._∼_ Pre
+  ⊑-refl  = RB.Preorder.refl Pre
+  ⊑-trans = RB.Preorder.trans Pre
 
   module TypeModule where
 
@@ -55,10 +58,10 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       ze : ∀ {Γ a}   → a ∈ (Γ `, a)
       su : ∀ {Γ a S} → a ∈ Γ → a ∈ (Γ `, S)
 
-    wkenⱽ : ∀ {a} {Γ Δ} → Γ ⊆ Δ → a ∈ Δ → a ∈ Γ
-    wkenⱽ (keep e) ze     = ze
-    wkenⱽ (keep e) (su v) = su (wkenⱽ e v)
-    wkenⱽ (drop e) v      = su (wkenⱽ e v)
+    wkenV : ∀ {a} {Γ Δ} → Γ ⊆ Δ → a ∈ Δ → a ∈ Γ
+    wkenV (keep e) ze     = ze
+    wkenV (keep e) (su v) = su (wkenV e v)
+    wkenV (drop e) v      = su (wkenV e v)
 
   open Variable public
 
@@ -75,11 +78,11 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       inl   : ∀ {Γ} {a b} → Term a Γ → Term (a + b) Γ
       inr   : ∀ {Γ} {a b} → Term b Γ → Term (a + b) Γ
       case  : ∀ {Γ} {a b c} → Term (a + b) Γ → Term c (Γ `, a) → Term c (Γ `, b) → Term c Γ
-
+    
     wkenTm : ∀ {a} {Γ Δ} → Γ ⊆ Δ → Term a Δ → Term a Γ
     wkenTm e unit = unit
     wkenTm e (`λ t)    = `λ (wkenTm (keep e) t)
-    wkenTm e (var x)   = var (wkenⱽ e x)
+    wkenTm e (var x)   = var (wkenV e x)
     wkenTm e (t ∙ t₁)  = wkenTm e t ∙ wkenTm e t₁
     wkenTm e (η t)     = η (wkenTm e t)
     wkenTm e (t ≫= k) = wkenTm e t ≫= wkenTm (keep e) k
@@ -97,47 +100,44 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     data Ne : Type → Ctx → Set where
       var   : ∀ {Γ} {a}   → a ∈ Γ → Ne a Γ
       _∙_   : ∀ {Γ} {a b} → Ne (a ⇒ b) Γ → Nf a Γ → Ne b Γ
-      _↑_   : ∀ {ℓᴸ ℓᴴ} {Γ} {a} → ℓᴸ ⊑ ℓᴴ → Ne (〈 a 〉 ℓᴸ) Γ → Ne (〈 a 〉 ℓᴴ) Γ
 
     data Nf : Type → Ctx → Set where
-      unit  : ∀ {Γ} → Nf 𝟙 Γ 
-      `λ    : ∀ {Γ} {a b}      → Nf b (Γ `, a) → Nf (a ⇒ b) Γ
-      𝕓     : ∀ {Γ}            → Ne 𝕓 Γ   → Nf 𝕓 Γ
-      η     : ∀ {ℓ} {Γ}  {a}   → Nf a Γ → Nf (〈 a 〉 ℓ) Γ
-      _≫=_ : ∀ {ℓ} {Γ} {a b}  → Ne (〈 a 〉 ℓ) Γ → Nf (〈 b 〉 ℓ) (Γ `, a) → Nf (〈 b 〉 ℓ) Γ
-      inl   : ∀ {Γ} {a b} → Nf a Γ → Nf (a + b) Γ
-      inr   : ∀ {Γ} {a b} → Nf b Γ → Nf (a + b) Γ
-      case  : ∀ {Γ} {a b c} → Ne (a + b) Γ → Nf c (Γ `, a) → Nf c (Γ `, b) → Nf c Γ
+      unit    : ∀ {Γ} → Nf 𝟙 Γ 
+      `λ      : ∀ {Γ} {a b}      → Nf b (Γ `, a) → Nf (a ⇒ b) Γ
+      𝕓       : ∀ {Γ}            → Ne 𝕓 Γ   → Nf 𝕓 Γ
+      η       : ∀ {ℓ} {Γ}  {a}   → Nf a Γ → Nf (〈 a 〉 ℓ) Γ
+      _↑_≫=_ : ∀ {ℓᴸ ℓᴴ} {Γ} {a b}  → ℓᴸ ⊑ ℓᴴ → Ne (〈 a 〉 ℓᴸ) Γ → Nf (〈 b 〉 ℓᴴ) (Γ `, a) → Nf (〈 b 〉 ℓᴴ) Γ
+      inl     : ∀ {Γ} {a b} → Nf a Γ → Nf (a + b) Γ
+      inr     : ∀ {Γ} {a b} → Nf b Γ → Nf (a + b) Γ
+      case    : ∀ {Γ} {a b c} → Ne (a + b) Γ → Nf c (Γ `, a) → Nf c (Γ `, b) → Nf c Γ
 
-    wkenNe : ∀ {T} {Γ Δ} → Γ ⊆ Δ → Ne T Δ → Ne T Γ
-    wkenNe e (var x) = var (wkenⱽ e x)
+    wkenNe : ∀ {a} {Γ Δ} → Γ ⊆ Δ → Ne a Δ → Ne a Γ
+    wkenNe e (var x) = var (wkenV e x)
     wkenNe e (n ∙ x) = (wkenNe e n) ∙ (wkenNf e x)
-    wkenNe e (c ↑ n) = c ↑ wkenNe e n
 
-    wkenNf : ∀ {T} {Γ Δ} → Γ ⊆ Δ → Nf T Δ → Nf T Γ
-    wkenNf e unit      = unit
-    wkenNf e (`λ n)    = `λ (wkenNf (keep e) n)
-    wkenNf e (η m)     = η (wkenNf e m)
-    wkenNf e (𝕓 n)     = 𝕓 (wkenNe e n)
-    wkenNf e (x ≫= m) = (wkenNe e x) ≫= wkenNf (keep e) m
-    wkenNf e (inl n)   = inl (wkenNf e n)
-    wkenNf e (inr n)   = inr (wkenNf e n)
+    wkenNf : ∀ {a} {Γ Δ} → Γ ⊆ Δ → Nf a Δ → Nf a Γ
+    wkenNf e unit           = unit
+    wkenNf e (`λ n)         = `λ (wkenNf (keep e) n)
+    wkenNf e (η m)          = η (wkenNf e m)
+    wkenNf e (𝕓 n)          = 𝕓 (wkenNe e n)
+    wkenNf e (p ↑ x ≫= m)  = p ↑ (wkenNe e x) ≫= wkenNf (keep e) m
+    wkenNf e (inl n)        = inl (wkenNf e n)
+    wkenNf e (inr n)        = inr (wkenNf e n)
     wkenNf e (case x n₁ n₂) = case (wkenNe e x) (wkenNf (keep e) n₁) (wkenNf (keep e) n₂)
 
     qNf : ∀ {a} {Γ} → Nf a Γ → Term a Γ
-    qNf unit = unit
-    qNf (`λ n) = `λ (qNf n)
-    qNf (𝕓 x)  = qNe x
-    qNf (η n)  = η (qNf n)
-    qNf (x ≫= n) = (qNe x) ≫= (qNf n)
-    qNf (inl n) = inl (qNf n)
-    qNf (inr n) = inr (qNf n)
+    qNf unit           = unit
+    qNf (`λ n)         = `λ (qNf n)
+    qNf (𝕓 x)          = qNe x
+    qNf (η n)          = η (qNf n)
+    qNf (p ↑ x ≫= n)  = (p ↑ (qNe x)) ≫= (qNf n)
+    qNf (inl n)        = inl (qNf n)
+    qNf (inr n)        = inr (qNf n)
     qNf (case n c₁ c₂) = case (qNe n) (qNf c₁) (qNf c₂)
 
     qNe : ∀ {a} {Γ} → Ne a Γ → Term a Γ
     qNe (var x) = var x
     qNe (t ∙ u) = (qNe t) ∙ (qNf u)
-    qNe (c ↑ t) = c ↑ (qNe t)
 
   open NormalForm public
 
@@ -183,12 +183,12 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     data 𝒞 (A : 𝒫) (ℓ : Label) : Ctx → Set where
       return : ∀ {Γ}       → A .In Γ → 𝒞 A ℓ Γ
-      bind   : ∀ {Γ} {a}   → Ne (〈 a 〉 ℓ) Γ → 𝒞 A ℓ (Γ `, a) → 𝒞 A ℓ Γ
+      bind   : ∀ {Γ} {a} {ℓᴸ}  → ℓᴸ ⊑ ℓ → Ne (〈 a 〉 ℓᴸ) Γ → 𝒞 A ℓ (Γ `, a) → 𝒞 A ℓ Γ
       branch : ∀ {Γ} {a b} → Ne (a + b) Γ →  𝒞 A ℓ (Γ `, a) →  𝒞 A ℓ (Γ `, b) → 𝒞 A ℓ Γ
 
     wken𝒞 : ∀ {ℓ} {A} {Γ Δ} → Γ ⊆ Δ → 𝒞 A ℓ Δ → 𝒞 A ℓ Γ
     wken𝒞 {A = A} e (return x) = return (Wken A e x)
-    wken𝒞 e (bind x m)         = bind   (wkenNe e x) (wken𝒞 (keep e) m)
+    wken𝒞 e (bind p x m)        = bind p  (wkenNe e x) (wken𝒞 (keep e) m)
     wken𝒞 e (branch x m₁ m₂)    = branch (wkenNe e x) (wken𝒞 (keep e) m₁) (wken𝒞 (keep e) m₂)
 
     {- The cover monad is a presheaf -}
@@ -198,18 +198,18 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     {- We can implement functorial map -}
     map𝒞  : ∀ {ℓ} {A B} → (A →∙ B) → (𝒞ᴾ ℓ A →∙ 𝒞ᴾ ℓ B)
     map𝒞 f (return x) = return (f x)
-    map𝒞 f (bind x m) = bind x (map𝒞 f m)
+    map𝒞 f (bind p x m) = bind p x (map𝒞 f m)
     map𝒞 f (branch x c₁ c₂) = branch x (map𝒞 f c₁) (map𝒞 f c₂)
 
     {- And derive μ -}
     join𝒞 : ∀ {ℓ} {A} → 𝒞ᴾ ℓ (𝒞ᴾ ℓ A) →∙ 𝒞ᴾ ℓ A
     join𝒞 (return x) = x
-    join𝒞 (bind f m) = bind f (join𝒞 m)
+    join𝒞 (bind p f m) = bind p f (join𝒞 m)
     join𝒞 (branch x c₁ c₂) = branch x (join𝒞 c₁) (join𝒞 c₂)
 
     mapExp𝒞  : ∀ {ℓ} {A B} → (A ⇒ᴾ B) →∙ (𝒞ᴾ ℓ A ⇒ᴾ 𝒞ᴾ ℓ B)
     mapExp𝒞 f e (return x) = return (f e x)
-    mapExp𝒞 f e (bind x m) = bind x (mapExp𝒞 f (drop e) m)
+    mapExp𝒞 f e (bind p x m) = bind p x (mapExp𝒞 f (drop e) m)
     mapExp𝒞 f e (branch x c₁ c₂) = branch x (mapExp𝒞 f (drop e) c₁) (mapExp𝒞 f (drop e) c₂)
 
     bindExp𝒞 : ∀ {ℓ} {A B} → (A ⇒ᴾ 𝒞ᴾ ℓ B) →∙ (𝒞ᴾ ℓ A ⇒ᴾ 𝒞ᴾ ℓ B)
@@ -217,7 +217,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     up𝒞 : ∀ {ℓᴸ ℓᴴ} {A} → ℓᴸ ⊑ ℓᴴ → (𝒞ᴾ ℓᴸ A →∙ 𝒞ᴾ ℓᴴ A)
     up𝒞 L⊑H (return x)  = return x
-    up𝒞 L⊑H (bind n k)  = bind (L⊑H ↑ n) (up𝒞 L⊑H k)
+    up𝒞 L⊑H (bind p n k)  = bind (⊑-trans p L⊑H) n (up𝒞 L⊑H k)
     up𝒞 L⊑H (branch x c₁ c₂) = branch x (up𝒞 L⊑H c₁) (up𝒞 L⊑H c₂)
 
   open CoverMonad public
@@ -257,7 +257,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   bindExp𝒟 : ∀ {A B} → (A ⇒ᴾ 𝒟ᴾ B) →∙ (𝒟ᴾ A ⇒ᴾ 𝒟ᴾ B)
   bindExp𝒟 f e m = join𝒟 (mapExp𝒟 f e m)
 
---  ap𝒟 : 
   open DecMonad
 
   module Interpretation where
@@ -354,14 +353,14 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
       reifyVal𝒞 : ∀ {a} {ℓ} → 𝒞ᴾ ℓ ⟦ a ⟧ →∙ Nfᴾ (〈 a 〉 ℓ)
       reifyVal𝒞 (return x) = η (reifyVal x)
-      reifyVal𝒞 (bind x m) = x ≫= reifyVal𝒞 m
+      reifyVal𝒞 (bind p x m) = p ↑ x ≫= reifyVal𝒞 m
       reifyVal𝒞 (branch x c₁ c₂) = case x (reifyVal𝒞 c₁) (reifyVal𝒞 c₂)
 
       reflect : ∀ {a} → Neᴾ a →∙ ⟦ a ⟧
       reflect {𝟙}      n = tt
       reflect {𝕓}      n = 𝕓 n
       reflect {a ⇒ b}  n = λ e v → reflect ((wkenNe e n) ∙ (reifyVal v))
-      reflect {〈 a 〉 ℓ} n =  bind n (return (reflect {a} (var ze)))
+      reflect {〈 a 〉 ℓ} n =  bind ⊑-refl n (return (reflect {a} (var ze)))
       reflect {a + b}  n =
         branch n
           (return (inj₁ (reflect {a} (var ze))))
@@ -387,12 +386,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       prot⇒ : ∀ {ℓ} {a b}    → b ⊣ ℓ  → (a ⇒ b) ⊣ ℓ
       flows : ∀ {ℓ} {a} {ℓ'} → ℓ ⊑ ℓ' → (〈 a 〉 ℓ') ⊣ ℓ
       layer : ∀ {ℓ} {a} {ℓ'} → a ⊣ ℓ  → (〈 a 〉 ℓ') ⊣ ℓ
-
-    postulate
-      -- obviously holds, remove later
-      ⊑-trans : RB.Transitive _⊑_
-      ⊑-dec  : RB.Decidable _⊑_
-      ⊑-refl : RB.Reflexive _⊑_
 
     -- a labelled type is protected at a level ℓ even if its sensitivity is raised
     ≼-up : ∀ {ℓ ℓᴸ ℓᴴ} {a} → (〈 a 〉 ℓᴸ) ⊣ ℓ → ℓᴸ ⊑ ℓᴴ → (〈 a 〉 ℓᴴ) ⊣ ℓ
@@ -435,7 +428,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       Ne-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → Ne a Γ → a ⊣ ℓ
       Ne-Prot e (var x) = Var-Prot e x
       Ne-Prot e (x ∙ n) = ≼-res⇒ (Ne-Prot e x)
-      Ne-Prot e (p ↑ x) = ≼-up (Ne-Prot e x) p
 
       -- normal forms (of first order types) protect secrets
       Nf-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → Neg a → Ground a → Nf a Γ → a ⊣ ℓ
@@ -443,11 +435,11 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       Nf-Prot e p () (`λ n)
       Nf-Prot e p g (𝕓 x)    = Ne-Prot e x
       Nf-Prot e (⟨ a ⟩ .ℓ) (〈 g 〉 ℓ) (η n) = layer (Nf-Prot e {!!} g n)
-      Nf-Prot e p g (x ≫= n) with Ne-Prot e x
-      Nf-Prot e p g (x ≫= n) | flows q = flows q
-      Nf-Prot e p g (x ≫= n) | layer q with Nf-Prot (e `, q) p g n
-      Nf-Prot e p g (x ≫= n) | layer q | flows r = flows r
-      Nf-Prot e p g (x ≫= n) | layer q | layer r = layer r
+      Nf-Prot e p g (p' ↑ x ≫= n) with Ne-Prot e x
+      Nf-Prot e p g (p' ↑ x ≫= n) | flows q = flows (⊑-trans q p')
+      Nf-Prot e p g (p' ↑ x ≫= n) | layer q with Nf-Prot (e `, q) p g n
+      Nf-Prot e p g (p' ↑ x ≫= n) | layer q | flows r = flows r
+      Nf-Prot e p g (p' ↑ x ≫= n) | layer q | layer r = layer r
       Nf-Prot e () g (inl n)
       Nf-Prot e () g (inr n)
       Nf-Prot e p g (case x t t₁) with Ne-Prot e x
@@ -455,28 +447,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     open import Data.Empty
     open import Relation.Nullary
-
-    {-
-    ⊣-dec : RB.Decidable _⊣_
-    ⊣-dec 𝕓 ℓ = no (λ ())
-    ⊣-dec (a ⇒ b) ℓ  with ⊣-dec b ℓ
-    ⊣-dec (a ⇒ b) ℓ | yes p = yes (prot⇒ p)
-    ⊣-dec (a ⇒ b) ℓ | no ¬p = no (λ {(prot⇒ x) → ¬p x})
-    ⊣-dec (〈 a 〉 ℓ′) ℓ with ⊑-dec ℓ ℓ′
-    ⊣-dec (〈 a 〉 ℓ′) ℓ | yes p = yes (flows p)
-    ⊣-dec (〈 a 〉 ℓ′) ℓ | no ¬p with ⊣-dec a ℓ
-    ⊣-dec (〈 a 〉 ℓ′) ℓ | no ¬p | yes p = yes (layer p)
-    ⊣-dec (〈 a 〉 ℓ′) ℓ | no ¬p | no ¬q = no (λ { (flows x) → ¬p x ; (layer x) → ¬q x})
-
-    ⊣ᶜ-dec : RB.Decidable _⊣ᶜ_
-    ⊣ᶜ-dec Ø ℓ = yes Ø
-    ⊣ᶜ-dec (Γ `, a) ℓ with ⊣-dec a ℓ
-    ⊣ᶜ-dec (Γ `, a) ℓ | yes p
-      with ⊣ᶜ-dec Γ ℓ
-    ⊣ᶜ-dec (Γ `, a) ℓ | yes p | yes q = yes (q `, p)
-    ⊣ᶜ-dec (Γ `, a) ℓ | yes p | no ¬q = no (λ {(Γ `, p) → ¬q Γ})
-    ⊣ᶜ-dec (Γ `, a) ℓ | no ¬p = no (λ { (Γ `, p) → ¬p p})
-    -}
 
   open NI public
 
@@ -488,7 +458,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     emptyNe : ∀ {a} → ¬ (Ne a Ø)
     emptyNe (var ())
     emptyNe (x ∙ _) = emptyNe x
-    emptyNe (x ↑ n) = emptyNe n
 
     BinOp = Type → Type → Type
     
@@ -498,7 +467,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       sbr⇒  : ∀ {a b c} → a ⊲ c → a ⊲ (b ⇒ c)
       sbl+  : ∀ {a b c} → a ⊲ b → a ⊲ (b + c)
       sbr+  : ∀ {a b c} → a ⊲ c → a ⊲ (b + c)
-      suup  : ∀ {a} {ℓ₁ ℓ₂} → ℓ₁ ⊑ ℓ₂ → (〈 a 〉 ℓ₂) ⊲ (〈 a 〉 ℓ₁)  
 
     postulate
       ⊲-trans : RB.Transitive _⊲_
@@ -525,6 +493,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     neutrality : ∀ {a} {Γ} → Ne a Γ → a ⊲ᶜ Γ
     neutrality (var x) = neutrVar x
     neutrality (x ∙ n) = ⊲-lift (sbr⇒ refl) (neutrality x)
-    neutrality (p ↑ n) = ⊲-lift (suup p) (neutrality n)
 
   open Neutrality public
+

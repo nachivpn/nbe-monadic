@@ -81,10 +81,10 @@ module Example where
   main₃ (case n _ _)            = ⊥-elim (emptyNe n)
 
   private
-    lemma₃ : ∀ {a} → ¬ (Ne (〈 a 〉 L) (Ø `, (〈 Bool 〉 H)))
-    lemma₃ n with neutrality n
-    lemma₃ n | here (suup ())
-    lemma₃ n | there ()
+    lemma₃ : ∀ {a} {ℓ} → ℓ ⊑ L → ¬ (Ne (〈 a 〉 ℓ) (Ø `, (〈 Bool 〉 H)))
+    lemma₃ p n with neutrality n
+    lemma₃ () n | here _⊲_.refl
+    lemma₃ p n | there ()
 
   main₄ : (n : Nf (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
         → (n ≡ `λ (η True)) ⊎ (n ≡ `λ (η False))
@@ -93,10 +93,11 @@ module Example where
   main₄ (`λ (η (inr unit)))         = inj₂ refl
   main₄ (`λ (η (inr (case n _ _)))) = ⊥-elim (lemma₂ n)
   main₄ (`λ (η (case n _ _)))       = ⊥-elim (lemma₂ n)
-  main₄ (`λ (n ≫= _))     = ⊥-elim (lemma₃ n)
-  main₄ (`λ (case n _ _)) = ⊥-elim (lemma₂ n)
-  main₄ (case n _ _)      = ⊥-elim (emptyNe n)
+  main₄ (`λ (p ↑ n ≫= _))          = ⊥-elim (lemma₃ p n)
+  main₄ (`λ (case n _ _))           = ⊥-elim (lemma₂ n)
+  main₄ (case n _ _)                = ⊥-elim (emptyNe n)
 
   main₅ : (t : Term (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
         → (norm t ≡ `λ (η True)) ⊎ (norm t ≡ `λ (η False))
   main₅ t = main₄ (norm t)
+ 
