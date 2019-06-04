@@ -62,12 +62,14 @@ module Example where
 
   private
     lemma₁ : ∀ {a b} → ¬ (Ne (a ⇒ b) (Ø `, (〈 Bool 〉 H)))
-    lemma₁ (var (su ()))
-    lemma₁ (n ∙ _) = lemma₁ n
+    lemma₁ n with neutrality n
+    lemma₁ n | here ()
+    lemma₁ n | there ()
 
     lemma₂ : ∀ {a b} → ¬ (Ne (a + b) (Ø `, (〈 Bool 〉 H)))
-    lemma₂ (var (su ()))
-    lemma₂ (n ∙ _) = lemma₁ n
+    lemma₂ n with neutrality n
+    lemma₂ n | here ()
+    lemma₂ n | there ()
 
   main₃ : (n : Nf (〈 Bool 〉 H ⇒ Bool) Ø)
         → (n ≡ `λ True) ⊎ (n ≡ `λ False)
@@ -83,10 +85,10 @@ module Example where
   main₃₅ e = main₃ (norm e)
 
   private
-    lemma₃ : ∀ {a} → ¬ (Ne (〈 a 〉 L) (Ø `, (〈 Bool 〉 H)))
-    lemma₃ (var (su ()))
-    lemma₃ (n ∙ _)    = lemma₁ n
-    lemma₃ (⊑ᴸᴴ-L ↑ n) = lemma₃ n
+    lemma₃ : ∀ {a} {ℓ} → ℓ ⊑ L → ¬ (Ne (〈 a 〉 ℓ) (Ø `, (〈 Bool 〉 H)))
+    lemma₃ p n with neutrality n
+    lemma₃ () n | here _⊲_.refl
+    lemma₃ p n | there ()
 
   main₄ : (n : Nf (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
         → (n ≡ `λ (η True)) ⊎ (n ≡ `λ (η False))
