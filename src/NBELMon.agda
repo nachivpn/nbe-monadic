@@ -5,7 +5,7 @@ open import Level
 module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
   Label   = RB.Preorder.Carrier Pre
-  
+
   _⊑_     = RB.Preorder._∼_ Pre
   ⊑-refl  = RB.Preorder.refl Pre
   ⊑-trans = RB.Preorder.trans Pre
@@ -17,7 +17,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       𝕓     :                 Type
       _⇒_   : (a b : Type)  → Type
       _+_   : (a b : Type)  → Type
-      〈_〉_   : (a : Type) (ℓ : Label) → Type
+      〈_〉_   : (ℓ : Label) (a : Type) → Type
 
     infixr 10 _⇒_
 
@@ -72,9 +72,9 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       `λ    : ∀ {Γ} {a b} → Term b (Γ `, a) → Term (a ⇒ b) Γ
       var   : ∀ {Γ} {a}   → a ∈ Γ → Term a Γ
       _∙_   : ∀ {Γ} {a b} → Term (a ⇒ b) Γ → Term a Γ → Term b Γ
-      _↑_   : ∀ {ℓᴸ ℓᴴ} {Γ} {a} → ℓᴸ ⊑ ℓᴴ → Term (〈 a 〉 ℓᴸ) Γ → Term (〈 a 〉 ℓᴴ) Γ
-      η     : ∀ {ℓ} {Γ} {a}    → Term a Γ → Term (〈 a 〉 ℓ) Γ
-      _≫=_ : ∀ {ℓ} {Γ} {a b} → Term (〈 a 〉 ℓ) Γ → Term (〈 b 〉 ℓ) (Γ `, a) → Term (〈 b 〉 ℓ) Γ
+      _↑_   : ∀ {ℓᴸ ℓᴴ} {Γ} {a} → ℓᴸ ⊑ ℓᴴ → Term (〈 ℓᴸ 〉 a) Γ → Term (〈 ℓᴴ 〉 a) Γ
+      η     : ∀ {ℓ} {Γ} {a}    → Term a Γ → Term (〈 ℓ 〉 a) Γ
+      _≫=_ : ∀ {ℓ} {Γ} {a b} → Term (〈 ℓ 〉 a) Γ → Term (〈 ℓ 〉 b) (Γ `, a) → Term (〈 ℓ 〉 b) Γ
       inl   : ∀ {Γ} {a b} → Term a Γ → Term (a + b) Γ
       inr   : ∀ {Γ} {a b} → Term b Γ → Term (a + b) Γ
       case  : ∀ {Γ} {a b c} → Term (a + b) Γ → Term c (Γ `, a) → Term c (Γ `, b) → Term c Γ
@@ -105,8 +105,8 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       unit    : ∀ {Γ} → Nf 𝟙 Γ 
       `λ      : ∀ {Γ} {a b}      → Nf b (Γ `, a) → Nf (a ⇒ b) Γ
       𝕓       : ∀ {Γ}            → Ne 𝕓 Γ   → Nf 𝕓 Γ
-      η       : ∀ {ℓ} {Γ}  {a}   → Nf a Γ → Nf (〈 a 〉 ℓ) Γ
-      _↑_≫=_ : ∀ {ℓᴸ ℓᴴ} {Γ} {a b}  → ℓᴸ ⊑ ℓᴴ → Ne (〈 a 〉 ℓᴸ) Γ → Nf (〈 b 〉 ℓᴴ) (Γ `, a) → Nf (〈 b 〉 ℓᴴ) Γ
+      η       : ∀ {ℓ} {Γ}  {a}   → Nf a Γ → Nf (〈 ℓ 〉 a) Γ
+      _↑_≫=_ : ∀ {ℓᴸ ℓᴴ} {Γ} {a b}  → ℓᴸ ⊑ ℓᴴ → Ne (〈 ℓᴸ 〉 a) Γ → Nf (〈 ℓᴴ 〉 b) (Γ `, a) → Nf (〈 ℓᴴ 〉 b) Γ
       inl     : ∀ {Γ} {a b} → Nf a Γ → Nf (a + b) Γ
       inr     : ∀ {Γ} {a b} → Nf b Γ → Nf (a + b) Γ
       case    : ∀ {Γ} {a b c} → Ne (a + b) Γ → Nf c (Γ `, a) → Nf c (Γ `, b) → Nf c Γ
@@ -183,7 +183,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     data 𝒞 (A : 𝒫) (ℓ : Label) : Ctx → Set where
       return : ∀ {Γ}       → A .In Γ → 𝒞 A ℓ Γ
-      bind   : ∀ {Γ} {a} {ℓᴸ}  → ℓᴸ ⊑ ℓ → Ne (〈 a 〉 ℓᴸ) Γ → 𝒞 A ℓ (Γ `, a) → 𝒞 A ℓ Γ
+      bind   : ∀ {Γ} {a} {ℓᴸ}  → ℓᴸ ⊑ ℓ → Ne (〈 ℓᴸ 〉 a) Γ → 𝒞 A ℓ (Γ `, a) → 𝒞 A ℓ Γ
       branch : ∀ {Γ} {a b} → Ne (a + b) Γ →  𝒞 A ℓ (Γ `, a) →  𝒞 A ℓ (Γ `, b) → 𝒞 A ℓ Γ
 
     wken𝒞 : ∀ {ℓ} {A} {Γ Δ} → Γ ⊆ Δ → 𝒞 A ℓ Δ → 𝒞 A ℓ Γ
@@ -277,7 +277,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     ⟦ 𝟙  ⟧        = 𝟙ᴾ
     ⟦ 𝕓 ⟧         = 𝕓ᴾ
     ⟦ a ⇒ b ⟧     = ⟦ a ⟧ ⇒ᴾ  ⟦ b ⟧
-    ⟦ (〈 a 〉 ℓ) ⟧  = 𝒞ᴾ ℓ ⟦ a ⟧
+    ⟦ 〈 ℓ 〉 a ⟧  = 𝒞ᴾ ℓ ⟦ a ⟧
     ⟦ a + b ⟧     = 𝒟ᴾ (⟦ a ⟧ +ᴾ ⟦ b ⟧)
 
     ⟦_⟧ₑ : Ctx → 𝒫
@@ -304,7 +304,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       branch (wkenNe e n)
         (run𝒟⇒ c₁ (keep e) (wken𝒟 (drop ⊆-refl) x))
         (run𝒟⇒ c₂ (keep e) (wken𝒟 (drop ⊆-refl) x))
-  run𝒟 {〈 a 〉 ℓ} m = run𝒟𝒞 m
+  run𝒟 {〈 ℓ 〉 a} m = run𝒟𝒞 m
     where
     run𝒟𝒞 : 𝒟ᴾ (𝒞ᴾ ℓ ⟦ a ⟧) →∙ (𝒞ᴾ ℓ ⟦ a ⟧)
     run𝒟𝒞 (return x) = x
@@ -351,7 +351,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       reifySum : ∀ {a b} → (⟦ a ⟧ +ᴾ ⟦ b ⟧) →∙ Nfᴾ (a + b)
       reifySum {a} {b} = [ inl ∘ reifyVal {a} , inr ∘ reifyVal {b} ]′
 
-      reifyVal𝒞 : ∀ {a} {ℓ} → 𝒞ᴾ ℓ ⟦ a ⟧ →∙ Nfᴾ (〈 a 〉 ℓ)
+      reifyVal𝒞 : ∀ {a} {ℓ} → 𝒞ᴾ ℓ ⟦ a ⟧ →∙ Nfᴾ (〈 ℓ 〉 a)
       reifyVal𝒞 (return x) = η (reifyVal x)
       reifyVal𝒞 (bind p x m) = p ↑ x ≫= reifyVal𝒞 m
       reifyVal𝒞 (branch x c₁ c₂) = case x (reifyVal𝒞 c₁) (reifyVal𝒞 c₂)
@@ -360,7 +360,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       reflect {𝟙}      n = tt
       reflect {𝕓}      n = 𝕓 n
       reflect {a ⇒ b}  n = λ e v → reflect ((wkenNe e n) ∙ (reifyVal v))
-      reflect {〈 a 〉 ℓ} n =  bind ⊑-refl n (return (reflect {a} (var ze)))
+      reflect {〈 ℓ 〉 a} n =  bind ⊑-refl n (return (reflect {a} (var ze)))
       reflect {a + b}  n =
         branch n
           (return (inj₁ (reflect {a} (var ze))))
@@ -384,11 +384,11 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     -- this definition is straight from DCC (except prot𝕓)
     data _⊣_ : Type → Label → Set where
       prot⇒ : ∀ {ℓ} {a b}    → b ⊣ ℓ  → (a ⇒ b) ⊣ ℓ
-      flows : ∀ {ℓ} {a} {ℓ'} → ℓ ⊑ ℓ' → (〈 a 〉 ℓ') ⊣ ℓ
-      layer : ∀ {ℓ} {a} {ℓ'} → a ⊣ ℓ  → (〈 a 〉 ℓ') ⊣ ℓ
+      flows : ∀ {ℓ} {a} {ℓ'} → ℓ ⊑ ℓ' → (〈 ℓ' 〉 a) ⊣ ℓ
+      layer : ∀ {ℓ} {a} {ℓ'} → a ⊣ ℓ  → (〈 ℓ' 〉 a) ⊣ ℓ
 
     -- a labelled type is protected at a level ℓ even if its sensitivity is raised
-    ≼-up : ∀ {ℓ ℓᴸ ℓᴴ} {a} → (〈 a 〉 ℓᴸ) ⊣ ℓ → ℓᴸ ⊑ ℓᴴ → (〈 a 〉 ℓᴴ) ⊣ ℓ
+    ≼-up : ∀ {ℓ ℓᴸ ℓᴴ} {a} → (〈 ℓᴸ 〉 a) ⊣ ℓ → ℓᴸ ⊑ ℓᴴ → (〈 ℓᴴ 〉 a) ⊣ ℓ
     ≼-up (flows p) q = flows (⊑-trans p q)
     ≼-up (layer p) q = layer p
 
@@ -407,13 +407,13 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     data Ground : Type → Set where
       𝟙   : Ground 𝟙
       𝕓   : Ground 𝕓
-      〈_〉_ : ∀ {a} → Ground a → (ℓ : Label) → Ground (〈 a 〉 ℓ)
+      〈_〉_ : ∀ {a} → Ground a → (ℓ : Label) → Ground (〈 ℓ 〉 a)
       _+_ : ∀ {a b} → Ground a → Ground b → Ground (a + b)
 
     data Neg : Type → Set where
       𝟙    : Neg 𝟙
       𝕓    : Neg 𝕓
-      ⟨_⟩_ : ∀ a → (ℓ : Label) → Neg (〈 a 〉 ℓ)
+      ⟨_⟩_ : ∀ a → (ℓ : Label) → Neg (〈 ℓ 〉 a)
 
     -- given a context protected at ℓ,
     -- variables produce values protected at ℓ
@@ -495,4 +495,3 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     neutrality (x ∙ n) = ⊲-lift (sbr⇒ refl) (neutrality x)
 
   open Neutrality public
-
