@@ -1,52 +1,13 @@
 import Relation.Binary as RB
 open import Level
 
-module Example where
+module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
 
-  module TwoPoint where
-
-    import Relation.Binary.PropositionalEquality as P
-
-    data LH : Set where
-      L H : LH
-
-    data _⊑ᴸᴴ_ : LH → LH → Set where
-      ⊑ᴸᴴ-H : ∀ {ℓ} → ℓ ⊑ᴸᴴ H
-      ⊑ᴸᴴ-L : L ⊑ᴸᴴ L
-
-    ⊑ᴸᴴ-refl : RB.Reflexive _⊑ᴸᴴ_
-    ⊑ᴸᴴ-refl {L} = ⊑ᴸᴴ-L
-    ⊑ᴸᴴ-refl {H} = ⊑ᴸᴴ-H
-
-    ⊑ᴸᴴ-trans : RB.Transitive _⊑ᴸᴴ_
-    ⊑ᴸᴴ-trans a ⊑ᴸᴴ-H = ⊑ᴸᴴ-H
-    ⊑ᴸᴴ-trans a ⊑ᴸᴴ-L = a
-
-    _≡ᴸᴴ_ : LH → LH → Set
-    _≡ᴸᴴ_ = P._≡_
-
-    ⊑ᴸᴴ-Preorder : RB.Preorder 0ℓ 0ℓ 0ℓ
-    ⊑ᴸᴴ-Preorder = record { Carrier = LH
-                          ; _≈_ = _≡ᴸᴴ_
-                          ; _∼_ = _⊑ᴸᴴ_
-                          ; isPreorder = record { isEquivalence = P.isEquivalence
-                                                ; reflexive     = λ {P.refl → ⊑ᴸᴴ-refl}
-                                                ; trans         = ⊑ᴸᴴ-trans } }
-
-  open TwoPoint
-
-  open import NBELMon (⊑ᴸᴴ-Preorder)
+  open import NBELMon (Pre)
   open import Data.Empty
   open import Relation.Nullary
-
-  main : ¬ (Nf (〈 𝕓 〉 L) ( Ø `, (〈 𝕓 〉 H)))
-  main nf with Nf-Prot (Ø `, flows ⊑ᴸᴴ-refl) (⟨ 𝕓 ⟩ L) (〈 𝕓 〉 L) nf
-  main nf | flows ()
-  main nf | layer ()
-
-  main₂ : ¬ (Nf (〈 𝕓 〉 H ⇒ 〈 𝕓 〉 L) Ø)
-  main₂ (`λ nf) = main nf
-  main₂ (case x n₁ n₂) = emptyNe x
+  open import Relation.Binary.PropositionalEquality
+  open import Data.Sum
 
   Bool : Type
   Bool = 𝟙 + 𝟙
@@ -57,67 +18,34 @@ module Example where
   False : ∀ {Γ} → Nf Bool Γ
   False = inr unit
 
-  open import Relation.Binary.PropositionalEquality
-  open import Data.Sum
-
-  private
-    lemma₁ : ∀ {a b} → ¬ (Ne (a ⇒ b) (Ø `, (〈 Bool 〉 H)))
-    lemma₁ n with neutrality n
-    lemma₁ n | here ()
-    lemma₁ n | there ()
-
-    lemma₂ : ∀ {a b} → ¬ (Ne (a + b) (Ø `, (〈 Bool 〉 H)))
-    lemma₂ n with neutrality n
-    lemma₂ n | here ()
-    lemma₂ n | there ()
-
-  main₃ : (n : Nf (〈 Bool 〉 H ⇒ Bool) Ø)
-        → (n ≡ `λ True) ⊎ (n ≡ `λ False)
-  main₃ (`λ (inl unit))         = inj₁ refl
-  main₃ (`λ (inl (case n _ _))) = ⊥-elim (lemma₂ n)
-  main₃ (`λ (inr unit))         = inj₂ refl
-  main₃ (`λ (inr (case n _ _))) = ⊥-elim (lemma₂ n)
-  main₃ (`λ (case n _ _))       = ⊥-elim (lemma₂ n)
-  main₃ (case n _ _)            = ⊥-elim (emptyNe n)
-
-  main₃₅ : (e : Term (〈 Bool 〉 H ⇒ Bool) Ø)
-         → (norm e ≡ `λ True) ⊎ (norm e ≡ `λ False)
-  main₃₅ e = main₃ (norm e)
-
-  private
-    lemma₃ : ∀ {a} {ℓ} → ℓ ⊑ L → ¬ (Ne (〈 a 〉 ℓ) (Ø `, (〈 Bool 〉 H)))
-    lemma₃ p n with neutrality n
-    lemma₃ () n | here _⊲_.refl
-    lemma₃ p n | there ()
-
-  main₄ : (n : Nf (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
-        → (n ≡ `λ (η True)) ⊎ (n ≡ `λ (η False))
-  main₄ (`λ (η (inl unit)))         = inj₁ refl
-  main₄ (`λ (η (inl (case n _ _)))) = ⊥-elim (lemma₂ n)
-  main₄ (`λ (η (inr unit)))         = inj₂ refl
-  main₄ (`λ (η (inr (case n _ _)))) = ⊥-elim (lemma₂ n)
-  main₄ (`λ (η (case n _ _)))       = ⊥-elim (lemma₂ n)
-  main₄ (`λ (n ≫= _))     = ⊥-elim (lemma₃ n)
-  main₄ (`λ (case n _ _)) = ⊥-elim (lemma₂ n)
-  main₄ (case n _ _)      = ⊥-elim (emptyNe n)
-
-  main₅ : (n : Term (〈 Bool 〉 H ⇒ 〈 Bool 〉 L) Ø)
-        → (norm n ≡ `λ (η True)) ⊎ (norm n ≡ `λ (η False))
-  main₅ n = main₄ (norm n)
-
-
-  true : ∀ {Γ} → Term Bool Γ
-  true = inl unit
-
-  false : ∀ {Γ} → Term Bool Γ
-  false = inr unit
-
-  example : ∀ {τ} → Term (〈 Bool 〉 L ⇒ τ ⇒ τ ⇒ 〈 τ 〉 H) Ø
-  example =
-    `λ (`λ (`λ ( ⊑ᴸᴴ-H ↑ ((var (su (su ze))) ≫=
-           case (var ze)
-                (η (var (su (su ze))))
-                (η (var (su (su (su ze)))))))))
-  
-
-  p = norm (example ∙ η false ∙ true ∙ false)
+  -- general lemma about normal forms of programs from secret
+  -- inputs to public booleans that does not assume anything
+  -- but the preorder on the monad labels
+  nf-lemma₁ : ∀ {a} {ℓᴸ ℓᴴ}
+            → ¬ (ℓᴴ ⊑ ℓᴸ)
+            → (n : Nf (〈 ℓᴴ 〉 a ⇒ 〈 ℓᴸ 〉 Bool) Ø)
+            → (n ≡ `λ (η True)) ⊎ (n ≡ `λ (η False))
+  nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (η (inl unit))) = inj₁ refl
+  nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (η (inl (case x n n₁))))
+    with neutrality x
+  ... | here ()
+  ... | there ()
+  nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (η (inr unit))) = inj₂ refl
+  nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (η (inr (case x n n₁))))
+    with neutrality x
+  ... | here ()
+  ... | there ()
+  nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (η (case x k₁ k₂)))
+    with neutrality x
+  ... | here ()
+  ... | there ()
+  nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (c ↑ m ≫= k))
+    with neutrality m
+  ... | here refl = ⊥-elim (ℓᴴ⋢ℓᴸ c)
+  nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (case x k₁ k₂))
+    with neutrality x
+  ... | here ()
+  ... | there ()
+  nf-lemma₁ ℓᴴ⋢ℓᴸ (case x _ _)
+    with neutrality x
+  ... | ()
