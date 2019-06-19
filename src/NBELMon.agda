@@ -1,6 +1,6 @@
 {-# OPTIONS --allow-unsolved-metas #-}
 import Relation.Binary as RB
-open import Level
+open import Level using (0ℓ)
 
 module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
@@ -378,72 +378,148 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
   open NbE public
 
+  module Const where
+
+    open import Relation.Binary.PropositionalEquality
+
+    ⊆-term : ∀ {Γ} → Γ ⊆ Ø
+    ⊆-term {Ø} = base
+    ⊆-term {Γ `, x} = drop ⊆-term
+    
+    IsConstTm : ∀ {Γ a} → Term a Γ → Set
+    IsConstTm {Γ} {a} t = Σ (Term a Ø) λ t' → wkenTm ⊆-term t' ≡ t
+
+    IsConstNf : ∀ {Γ a} → Nf a Γ → Set
+    IsConstNf {Γ} {a} n = Σ (Nf a Ø) λ n' → wkenNf ⊆-term n' ≡ n
+    
+    -- Example: True is a constant
+    private
+    
+      Bool : Type
+      Bool = 𝟙 + 𝟙
+
+      True : ∀ {Γ} → Nf Bool Γ
+      True = inl unit
+
+      TrueIsConst : ∀ {Γ} → IsConstNf {Γ} True
+      TrueIsConst = (inl unit) , refl
+
+  open Const public
+
   module NI where
 
-    -- ℓ ⊣ a to be read as: the type a is protected at label ℓ
-    -- this definition is straight from DCC (except prot𝕓)
-    data _⊣_ : Type → Label → Set where
-      prot⇒ : ∀ {ℓ} {a b}    → b ⊣ ℓ  → (a ⇒ b) ⊣ ℓ
-      flows : ∀ {ℓ} {a} {ℓ'} → ℓ ⊑ ℓ' → (〈 ℓ' 〉 a) ⊣ ℓ
-      layer : ∀ {ℓ} {a} {ℓ'} → a ⊣ ℓ  → (〈 ℓ' 〉 a) ⊣ ℓ
+    open import Relation.Binary.PropositionalEquality
 
-    -- a labelled type is protected at a level ℓ even if its sensitivity is raised
-    ≼-up : ∀ {ℓ ℓᴸ ℓᴴ} {a} → (〈 ℓᴸ 〉 a) ⊣ ℓ → ℓᴸ ⊑ ℓᴴ → (〈 ℓᴴ 〉 a) ⊣ ℓ
-    ≼-up (flows p) q = flows (⊑-trans p q)
-    ≼-up (layer p) q = layer p
+    -- Transparency
+    
+    data Tr : Type → Label → Set where
+      𝟙 : ∀ {ℓ}   → Tr 𝟙 ℓ
+      𝕓   : ∀ {ℓ} → Tr 𝕓 ℓ
+      _+_ : ∀ {a b} {ℓ}  → Tr a ℓ → Tr b ℓ → Tr (a + b) ℓ
+      ⇒_ : ∀ {a b} {ℓ}  → Tr b ℓ → Tr (a ⇒ b) ℓ
+      〈_〉_ : ∀ {a} {ℓ ℓ'} → Tr a ℓ' → ℓ' ⊑ ℓ → Tr (〈 ℓ' 〉 a) ℓ
 
-    -- if a function is protected at a level ℓ,
-    -- then its result is also protected at ℓ
-    ≼-res⇒ : ∀ {ℓ} {a b} → (a ⇒ b) ⊣ ℓ → b ⊣ ℓ
-    ≼-res⇒ (prot⇒ e) = e
+    -- Protected at
+    
+    data Pr : Type → Label → Set where
+      ⇒_    : ∀ {ℓ} {a b}    → Pr b ℓ  → Pr (a ⇒ b) ℓ
+      lower : ∀ {ℓ} {ℓ'} {a} → ℓ ⊑ ℓ' → Pr (〈 ℓ' 〉 a) ℓ
+    
+    -- Protected at, for context. Defined component-wise.
+    
+    data Prᶜ : Ctx → Label → Set where
+      Ø    : ∀ {ℓ} → Prᶜ Ø ℓ
+      _`,_ : ∀ {ℓ} {Γ} {a} → Prᶜ Γ ℓ → Pr a ℓ → Prᶜ (Γ `, a) ℓ
 
-
-    -- labelled context (or context protected at ℓ)
-    data _⊣ᶜ_ : Ctx → Label → Set where
-      Ø    : ∀ {ℓ} → Ø ⊣ᶜ ℓ
-      _`,_ : ∀ {ℓ} {Γ} {a} → Γ ⊣ᶜ ℓ → a ⊣ ℓ → (Γ `, a) ⊣ᶜ ℓ
-
-    -- first order type
+    -- First order type
+    
     data Ground : Type → Set where
       𝟙   : Ground 𝟙
       𝕓   : Ground 𝕓
       〈_〉_ : ∀ {a} → Ground a → (ℓ : Label) → Ground (〈 ℓ 〉 a)
       _+_ : ∀ {a b} → Ground a → Ground b → Ground (a + b)
 
-    data Neg : Type → Set where
-      𝟙    : Neg 𝟙
-      𝕓    : Neg 𝕓
-      ⟨_⟩_ : ∀ a → (ℓ : Label) → Neg (〈 ℓ 〉 a)
+    -- Variables preserve opaqeueness
+    
+    Var-Pr : ∀ {Γ} {a} {ℓ} → Prᶜ Γ ℓ → a ∈ Γ → Pr a ℓ
+    Var-Pr (e `, a) ze = a
+    Var-Pr (e `, a) (su v) = Var-Pr e v
 
-    -- given a context protected at ℓ,
-    -- variables produce values protected at ℓ
-    -- i.e., variables protect secrets
-    Var-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → a ∈ Γ → a ⊣ ℓ
-    Var-Prot (e `, a) ze = a
-    Var-Prot (e `, a) (su v) = Var-Prot e v
+    -- Neutrals preserve opaqeueness
+    
+    Ne-Pr : ∀ {Γ} {a} {ℓ} → Prᶜ Γ ℓ → Ne a Γ → Pr a ℓ
+    Ne-Pr e (var x) = Var-Pr e x
+    Ne-Pr e (x ∙ n) with (Ne-Pr e x)
+    ... | ⇒ p = p
 
-    mutual
+    -- Variable-outputs can only be observed at a higher level
+    
+    Var-Safe : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
+      → Prᶜ Γ ℓⁱ
+      → Tr a ℓᵒ
+      → a ∈ Γ → (ℓⁱ ⊑ ℓᵒ)
+    Var-Safe (p `, ()) 𝟙 ze
+    Var-Safe (p `, ()) 𝕓 ze
+    Var-Safe (p `, ()) (_ + _) ze
+    Var-Safe (p `, (⇒ x)) (⇒ y) ze = Var-Safe (p `, x) y ze
+    Var-Safe (p `, lower q) (〈 t 〉 x) ze = ⊑-trans q x
+    Var-Safe (p `, x) t (su v) = Var-Safe p t v
 
-      -- neutral forms protect secrets
-      Ne-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → Ne a Γ → a ⊣ ℓ
-      Ne-Prot e (var x) = Var-Prot e x
-      Ne-Prot e (x ∙ n) = ≼-res⇒ (Ne-Prot e x)
+    -- Neutral-outputs can only be observed at a higher level
+    
+    Ne-Safe : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
+      → Prᶜ Γ ℓⁱ
+      → Tr a ℓᵒ
+      → Ne a Γ → (ℓⁱ ⊑ ℓᵒ)
+    Ne-Safe e t (var x) = Var-Safe e t x
+    Ne-Safe e t (x ∙ _) = Ne-Safe e (⇒ t) x
 
-      -- normal forms (of first order types) protect secrets
-      Nf-Prot : ∀ {Γ} {a} {ℓ} → Γ ⊣ᶜ ℓ → Neg a → Ground a → Nf a Γ → a ⊣ ℓ
-      Nf-Prot e p g  unit    = {!!}
-      Nf-Prot e p () (`λ n)
-      Nf-Prot e p g (𝕓 x)    = Ne-Prot e x
-      Nf-Prot e (⟨ a ⟩ .ℓ) (〈 g 〉 ℓ) (η n) = layer (Nf-Prot e {!!} g n)
-      Nf-Prot e p g (p' ↑ x ≫= n) with Ne-Prot e x
-      Nf-Prot e p g (p' ↑ x ≫= n) | flows q = flows (⊑-trans q p')
-      Nf-Prot e p g (p' ↑ x ≫= n) | layer q with Nf-Prot (e `, q) p g n
-      Nf-Prot e p g (p' ↑ x ≫= n) | layer q | flows r = flows r
-      Nf-Prot e p g (p' ↑ x ≫= n) | layer q | layer r = layer r
-      Nf-Prot e () g (inl n)
-      Nf-Prot e () g (inr n)
-      Nf-Prot e p g (case x t t₁) with Ne-Prot e x
-      Nf-Prot e p g (case x t t₁) | ()
+    ------------------------------------------------------------
+    -- (First-order) Normal forms are either constants,
+    -- or their output can only be observed at a higher level
+    ------------------------------------------------------------
+
+    Nf-Safe : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
+    
+      -- protected input
+      → Prᶜ Γ ℓⁱ
+      
+      -- transparent, first-order output
+      → Ground a → Tr a ℓᵒ
+
+      → (n : Nf a Γ) → IsConstNf n ⊎ (ℓⁱ ⊑ ℓᵒ)
+
+    -- units are constants
+    Nf-Safe p g t unit = inj₁ (unit , refl)
+
+    -- return type is not allowed to be a function
+    Nf-Safe p () t (`λ n)
+
+    -- base types are safe, by Ne-Safe
+    Nf-Safe p g t (𝕓 x) = inj₂ (Ne-Safe p t x)
+
+    -- argument of η is either constant or at a higher level
+    Nf-Safe p (〈 g 〉 ℓ) (〈 t 〉 q) (η n) with Nf-Safe p g t n
+    ... | inj₁ (n' , r) = inj₁ (η n' , cong η r)
+    ... | inj₂ r = inj₂ (⊑-trans r q)
+
+    -- 
+    Nf-Safe p g (〈 t 〉 q) (r ↑ x ≫= n) with Ne-Pr p x
+    ... | lower s = inj₂ (⊑-trans s (⊑-trans r q))
+
+    -- 
+    Nf-Safe p (g + _) (t + _) (inl n) with Nf-Safe p g t n
+    ... | inj₁ (n' , r) = inj₁ (inl n' , cong inl r)
+    ... | inj₂ r = inj₂ r
+
+    -- 
+    Nf-Safe p (_ + g) (_ + t) (inr n) with Nf-Safe p g t n
+    ... | inj₁ (n' , r) = inj₁ (inr n' , cong inr r)
+    ... | inj₂ r = inj₂ r
+
+    -- sums are not allowed in the context
+    Nf-Safe p g t (case x n₁ n₂) with Ne-Pr p x
+    ... | ()
 
     open import Data.Empty
     open import Relation.Nullary

@@ -42,6 +42,7 @@ module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
   nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (c ↑ m ≫= k))
     with neutrality m
   ... | here refl = ⊥-elim (ℓᴴ⋢ℓᴸ c)
+  ... | there ()
   nf-lemma₁ ℓᴴ⋢ℓᴸ (`λ (case x k₁ k₂))
     with neutrality x
   ... | here ()
