@@ -50,3 +50,21 @@ module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
   nf-lemma₁ ℓᴴ⋢ℓᴸ (case x _ _)
     with neutrality x
   ... | ()
+  
+  -- An equivalent of `nf-lemma₁`.
+  -- I chose a different (but equivalent) type for the normal form
+  -- since it readily yields the result on using `Nf-Safe`.
+  
+  nf-lemma₁' : ∀ {a} {ℓᴸ ℓᴴ}
+            → ¬ (ℓᴴ ⊑ ℓᴸ)
+            → (n : Nf (〈 ℓᴸ 〉 Bool) (Ø `, (〈 ℓᴴ 〉 a)))
+            → IsConstNf n
+  nf-lemma₁' ℓᴴ⋢ℓᴸ n
+    with Nf-Safe
+           (Ø `, (〈〉 ⊑-refl))  -- (Ø `, 〈 ℓᴴ 〉 a) is protected at H
+           (〈 𝟙 + 𝟙 〉 _)       -- (〈 ℓᴸ 〉 Bool) is ground
+           (〈 𝟙 + 𝟙 〉 ⊑-refl)  -- (〈 ℓᴸ 〉 Bool) is transparent at ℓᴸ
+           n
+  ... | inj₁ nIsConst = nIsConst
+  ... | inj₂ ℓᴴ⊑ℓᴸ    = ⊥-elim (ℓᴴ⋢ℓᴸ ℓᴴ⊑ℓᴸ)
+

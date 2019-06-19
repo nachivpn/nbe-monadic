@@ -413,17 +413,17 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     -- Transparency
     
     data Tr : Type → Label → Set where
-      𝟙 : ∀ {ℓ}   → Tr 𝟙 ℓ
-      𝕓   : ∀ {ℓ} → Tr 𝕓 ℓ
+      𝟙   : ∀ {ℓ}        → Tr 𝟙 ℓ
+      𝕓   : ∀ {ℓ}        → Tr 𝕓 ℓ
       _+_ : ∀ {a b} {ℓ}  → Tr a ℓ → Tr b ℓ → Tr (a + b) ℓ
-      ⇒_ : ∀ {a b} {ℓ}  → Tr b ℓ → Tr (a ⇒ b) ℓ
+      ⇒_  : ∀ {a b} {ℓ}  → Tr b ℓ → Tr (a ⇒ b) ℓ
       〈_〉_ : ∀ {a} {ℓ ℓ'} → Tr a ℓ' → ℓ' ⊑ ℓ → Tr (〈 ℓ' 〉 a) ℓ
 
     -- Protected at
     
     data Pr : Type → Label → Set where
-      ⇒_    : ∀ {ℓ} {a b}    → Pr b ℓ  → Pr (a ⇒ b) ℓ
-      lower : ∀ {ℓ} {ℓ'} {a} → ℓ ⊑ ℓ' → Pr (〈 ℓ' 〉 a) ℓ
+      ⇒_ : ∀ {ℓ} {a b}    → Pr b ℓ  → Pr (a ⇒ b) ℓ
+      〈〉_ : ∀ {ℓ} {ℓ'} {a} → ℓ ⊑ ℓ' → Pr (〈 ℓ' 〉 a) ℓ
     
     -- Protected at, for context. Defined component-wise.
     
@@ -439,13 +439,13 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       〈_〉_ : ∀ {a} → Ground a → (ℓ : Label) → Ground (〈 ℓ 〉 a)
       _+_ : ∀ {a b} → Ground a → Ground b → Ground (a + b)
 
-    -- Variables preserve opaqeueness
+    -- Variables preserve protecttion
     
     Var-Pr : ∀ {Γ} {a} {ℓ} → Prᶜ Γ ℓ → a ∈ Γ → Pr a ℓ
     Var-Pr (e `, a) ze = a
     Var-Pr (e `, a) (su v) = Var-Pr e v
 
-    -- Neutrals preserve opaqeueness
+    -- Neutrals preserve protecttion
     
     Ne-Pr : ∀ {Γ} {a} {ℓ} → Prᶜ Γ ℓ → Ne a Γ → Pr a ℓ
     Ne-Pr e (var x) = Var-Pr e x
@@ -462,7 +462,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     Var-Safe (p `, ()) 𝕓 ze
     Var-Safe (p `, ()) (_ + _) ze
     Var-Safe (p `, (⇒ x)) (⇒ y) ze = Var-Safe (p `, x) y ze
-    Var-Safe (p `, lower q) (〈 t 〉 x) ze = ⊑-trans q x
+    Var-Safe (p `, (〈〉 q)) (〈 t 〉 x) ze = ⊑-trans q x
     Var-Safe (p `, x) t (su v) = Var-Safe p t v
 
     -- Neutral-outputs can only be observed at a higher level
@@ -480,13 +480,8 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     ------------------------------------------------------------
 
     Nf-Safe : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
-    
-      -- protected input
-      → Prᶜ Γ ℓⁱ
-      
-      -- transparent, first-order output
-      → Ground a → Tr a ℓᵒ
-
+      → Prᶜ Γ ℓⁱ            -- protected input   
+      → Ground a → Tr a ℓᵒ  -- ground & transparent output
       → (n : Nf a Γ) → IsConstNf n ⊎ (ℓⁱ ⊑ ℓᵒ)
 
     -- units are constants
@@ -505,7 +500,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     -- 
     Nf-Safe p g (〈 t 〉 q) (r ↑ x ≫= n) with Ne-Pr p x
-    ... | lower s = inj₂ (⊑-trans s (⊑-trans r q))
+    ... | 〈〉 s = inj₂ (⊑-trans s (⊑-trans r q))
 
     -- 
     Nf-Safe p (g + _) (t + _) (inl n) with Nf-Safe p g t n
