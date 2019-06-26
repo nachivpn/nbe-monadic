@@ -53,7 +53,7 @@ module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
   
   -- An equivalent of `nf-lemma₁`.
   -- I chose a different (but equivalent) type for the normal form
-  -- since it readily yields the result on using `Nf-Safe`.
+  -- since it readily yields the result on using `Nf-Sec`.
   
   nf-lemma₁' : ∀ {a} {ℓᴸ ℓᴴ}
             → ¬ (ℓᴴ ⊑ ℓᴸ)

@@ -491,7 +491,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     -----------------------------------------------------------------------------
     -- (First-order) Normal forms are either constants (IsConstNf n) or
     -- the observer must have the security clearance (ℓⁱ ⊑ ℓᵒ)
-    -- (i.e., observer level must be atleast the least secure value in the input)
+    -- (i.e., observer level must be atleast the least security level in the input)
     -----------------------------------------------------------------------------
 
     -- `Nf-Sec` 
