@@ -145,7 +145,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   open import Data.Unit hiding (_≤_)
   open import Data.Sum
     using (_⊎_ ; inj₁ ; inj₂ ; [_,_]′)
-  open import Function using (_∘_)
+  open import Function using (_∘′_)
 
   module Presheaf where
   {- Machinery for interpretations -}
@@ -171,7 +171,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     _+ᴾ_ :  𝒫 → 𝒫 → 𝒫
     In (P +ᴾ Q) Γ    = (In P Γ) ⊎ (In Q Γ)
-    (P +ᴾ Q) .Wken Γ⊆Δ = [ inj₁ ∘ Wken P Γ⊆Δ , inj₂ ∘ Wken Q Γ⊆Δ  ]′ 
+    (P +ᴾ Q) .Wken Γ⊆Δ = [ inj₁ ∘′ Wken P Γ⊆Δ , inj₂ ∘′ Wken Q Γ⊆Δ  ]′ 
 
     𝟙ᴾ : 𝒫
     𝟙ᴾ = record { In = λ _ → ⊤ ; Wken = λ {Δ} {Γ} Γ⊆Δ _ → tt }
@@ -349,7 +349,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       reifyVal𝒟 {a} m = run𝒟Nf {a} (map𝒟 reifyVal m)
 
       reifySum : ∀ {a b} → (⟦ a ⟧ +ᴾ ⟦ b ⟧) →∙ Nfᴾ (a + b)
-      reifySum {a} {b} = [ inl ∘ reifyVal {a} , inr ∘ reifyVal {b} ]′
+      reifySum {a} {b} = [ inl ∘′ reifyVal {a} , inr ∘′ reifyVal {b} ]′
 
       reifyVal𝒞 : ∀ {a} {ℓ} → 𝒞ᴾ ℓ ⟦ a ⟧ →∙ Nfᴾ (〈 ℓ 〉 a)
       reifyVal𝒞 (return x) = η (reifyVal x)
@@ -573,70 +573,85 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
   module Substitution where
 
-    infixr 6 _ₑ∘ₛ_ _ₛ∘ₑ_ _∘ₛ_
+    infixr 6 _ₑ∘_ _∘ₑ_ _∘_
 
     data Sub (Γ : Ctx) : Ctx → Set where
       Ø    : Sub Γ Ø
       _`,_ : ∀ {a Δ} → Sub Γ Δ → Term a Γ → Sub Γ (Δ `, a)
 
-    _ₛ∘ₑ_ : ∀ {Γ Δ Σ} → Sub Δ Σ → Γ ⊆ Δ → Sub Γ Σ
-    Ø       ₛ∘ₑ δ  = Ø
-    (s `, t) ₛ∘ₑ δ = (s ₛ∘ₑ δ) `, wkenTm δ t
+    _∘ₑ_ : ∀ {Γ Δ Σ} → Sub Δ Σ → Γ ⊆ Δ → Sub Γ Σ
+    Ø        ∘ₑ δ = Ø
+    (s `, t) ∘ₑ δ = (s ∘ₑ δ) `, wkenTm δ t
 
-    _ₑ∘ₛ_ : ∀ {Γ Δ Σ} → Δ ⊆ Σ → Sub Γ Δ → Sub Γ Σ
-    base ₑ∘ₛ s = s
-    keep e ₑ∘ₛ (s `, t) = (e ₑ∘ₛ s) `, t
-    drop e ₑ∘ₛ (s `, t) = e ₑ∘ₛ s
+    _ₑ∘_ : ∀ {Γ Δ Σ} → Δ ⊆ Σ → Sub Γ Δ → Sub Γ Σ
+    base   ₑ∘ s        = s
+    keep e ₑ∘ (s `, t) = (e ₑ∘ s) `, t
+    drop e ₑ∘ (s `, t) = e ₑ∘ s
 
-    dropₛ : ∀ {a Γ Δ} → Sub Γ Δ → Sub (Γ `, a) Δ
-    dropₛ σ = σ ₛ∘ₑ drop ⊆-refl
+    dropˢ : ∀ {a Γ Δ} → Sub Γ Δ → Sub (Γ `, a) Δ
+    dropˢ σ = σ ∘ₑ drop ⊆-refl
 
-    keepₛ : ∀ {Γ Δ} {a} → Sub Γ Δ → Sub (Γ `, a) (Δ `, a)
-    keepₛ σ = dropₛ σ `, var ze
+    keepˢ : ∀ {Γ Δ} {a} → Sub Γ Δ → Sub (Γ `, a) (Δ `, a)
+    keepˢ σ = dropˢ σ `, var ze
 
     ⌜_⌝ᵒᵖᵉ : ∀ {Γ Δ} → Γ ⊆ Δ → Sub Γ Δ
     ⌜ base   ⌝ᵒᵖᵉ = Ø
-    ⌜ drop σ ⌝ᵒᵖᵉ = dropₛ ⌜ σ ⌝ᵒᵖᵉ
-    ⌜ keep σ ⌝ᵒᵖᵉ = keepₛ ⌜ σ ⌝ᵒᵖᵉ
+    ⌜ drop σ ⌝ᵒᵖᵉ = dropˢ ⌜ σ ⌝ᵒᵖᵉ
+    ⌜ keep σ ⌝ᵒᵖᵉ = keepˢ ⌜ σ ⌝ᵒᵖᵉ
 
     -- Action on ∈ and Tm
-    ∈ₛ : ∀ {Γ Δ} {a} → Sub Γ Δ → a ∈ Δ → Term a Γ
-    ∈ₛ (s `, t) ze     = t
-    ∈ₛ (s `, x) (su e) = ∈ₛ s e
+    ∈ : ∀ {Γ Δ} {a} → Sub Γ Δ → a ∈ Δ → Term a Γ
+    ∈ (s `, t) ze     = t
+    ∈ (s `, x) (su e) = ∈ s e
 
     subst : ∀ {Γ Δ} {a} → Sub Γ Δ → Term a Δ → Term a Γ
     subst s unit = unit
-    subst s (`λ t) = `λ (subst (keepₛ s) t)
-    subst s (var x)  = ∈ₛ s x
+    subst s (`λ t) = `λ (subst (keepˢ s) t)
+    subst s (var x)  = ∈ s x
     subst s (t ∙ u)  = subst s t ∙ subst s u
     subst s (c ↑ t)  = c ↑ subst s t
     subst s (η t)    = η (subst s t)
-    subst s (m ≫= f) = (subst s m) ≫= subst (keepₛ s) f
+    subst s (m ≫= f) = (subst s m) ≫= subst (keepˢ s) f
     subst s (inl t) = inl (subst s t)
     subst s (inr t) = inr (subst s t)
-    subst s (case t t₁ t₂) = case (subst s t) (subst (keepₛ s) t₁) (subst (keepₛ s) t₂)
+    subst s (case t t₁ t₂) = case (subst s t) (subst (keepˢ s) t₁) (subst (keepˢ s) t₂)
 
     -- Identity and composition
-    idₛ : ∀ {Γ} → Sub Γ Γ
-    idₛ {Ø}     = Ø
-    idₛ {Γ `, a} = keepₛ idₛ
+    id : ∀ {Γ} → Sub Γ Γ
+    id {Ø}     = Ø
+    id {Γ `, a} = keepˢ id
 
-    _∘ₛ_ : ∀ {Γ Δ Σ} → Sub Δ Σ → Sub Γ Δ → Sub Γ Σ
-    Ø       ∘ₛ δ  = Ø
-    (s `, t) ∘ₛ δ = (s ∘ₛ δ) `, subst δ t
+    _∘_ : ∀ {Γ Δ Σ} → Sub Δ Σ → Sub Γ Δ → Sub Γ Σ
+    Ø       ∘ δ  = Ø
+    (s `, t) ∘ δ = (s ∘ δ) `, subst δ t
 
   open Substitution
+  
   module Conversion where
 
     data _≈_ {Γ} : ∀ {τ} → Term τ Γ → Term τ Γ → Set where
 
       -- λ/ reduction
       ⇒β-≈      : ∀ {a b} → {t : Term b (Γ `, a)} {u : Term a Γ}
-                → ((`λ t) ∙ u) ≈ subst (idₛ `, u) t
+                → ((`λ t) ∙ u) ≈ subst (id `, u) t
 
       ⇒η-≈      : ∀ {a b} → {t : Term (a ⇒ b) Γ}
                 → t  ≈ `λ (wkenTm (drop ⊆-refl) t ∙ (var ze))
 
+      -- Monad laws 
+      ⟨⟩β-≈     : ∀ {a b} {ℓ} → {x : Term a Γ} {f : Term (〈 ℓ 〉 b) (Γ `, a)}
+                → (η x ≫= f) ≈ subst (id `, x) f
+
+      ⟨⟩η-≈     : ∀ {a} {ℓ} → {t : Term (〈 ℓ 〉 a) Γ}
+                → t ≈ (t ≫= η (var ze))
+
+      ⟨⟩γ-≈     : ∀ {a b c} {ℓ} → {t₁ : Term (〈 ℓ 〉 a) Γ}
+                                  {t₂ : Term (〈 ℓ 〉 b) (Γ `, a)}
+                                  {t₃ : Term (〈 ℓ 〉 c) (Γ `, b)}
+                → (t₁ ≫= (t₂ ≫= wkenTm (keep (drop ⊆-refl)) t₃)) ≈ ((t₁ ≫= t₂) ≫= t₃)
+                 
+      -- congruence laws
+      
       -- λ/ congruence
       ∙-≈ : ∀ {a b} {f f′ : Term (a ⇒ b) Γ} {u u′ : Term a Γ}
             → f ≈ f′
@@ -651,3 +666,154 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       ≈-refl  : ∀ {a} {t : Term a Γ}                  → t ≈ t
       ≈-sym   : ∀ {a} {t t′ : Term a Γ}               → t ≈ t′ → t′ ≈ t
       ≈-trans : ∀ {a} {t t′ t′′ : Term a Γ}           → t ≈ t′ → t′ ≈ t′′ → t ≈ t′′
+
+  open Conversion public
+
+
+  module Consistency where
+
+    open import Data.Product
+
+    ----------------------
+    -- Logical relations
+    ----------------------
+
+    R𝒟 : ∀ {Γ a} {A}
+         → (Rl : ∀ {Δ} → Term a Δ → In A Δ → Set)
+         → Term a Γ → 𝒟 A Γ → Set
+    R𝒟 Rl t (return v)       =
+      Rl t v
+    R𝒟 Rl t (branch x d₁ d₂) =
+      ∃₂ λ t₁ t₂
+      → R𝒟 Rl t₁ d₁
+      × R𝒟 Rl t₂ d₂
+      × t ≈ case (qNe x) t₁ t₂
+
+    R𝒞 : ∀ {Γ a} {A} {ℓ}
+         → (Rl : ∀ {Δ} → Term (〈 ℓ 〉 a) Δ → In A Δ → Set)
+         → Term (〈 ℓ 〉 a) Γ → 𝒞 A ℓ Γ → Set
+    R𝒞 Rl t (return v)      =
+      Rl t v
+    R𝒞 Rl t (bind p n m)   =
+      ∃ λ t'
+      → R𝒞 Rl t' m
+      × t ≈ ((p ↑ qNe n) ≫= t')
+    R𝒞 Rl t (branch x m₁ m₂) =
+      ∃₂ λ t₁ t₂
+      → R𝒞 Rl t₁ m₁
+      × R𝒞 Rl t₂ m₂
+      × t ≈ case (qNe x) t₁ t₂
+      
+    mutual
+
+      Rl₊ : ∀ {Γ a b} → Term (a + b) Γ  → In (⟦ a ⟧ +ᴾ ⟦ b ⟧) Γ → Set
+      Rl₊ t (inj₁ x) = ∃ λ t' → R t' x × (t ≈ inl t')
+      Rl₊ t (inj₂ x) = ∃ λ t' → R t' x × (t ≈ inr t')
+      
+      R₊ : ∀ {Γ a b} → Term (a + b) Γ  → 𝒟 (⟦ a ⟧ +ᴾ ⟦ b ⟧) Γ → Set
+      R₊ t v = R𝒟 Rl₊ t v
+
+      Rl〈〉  : ∀ {Γ a} {ℓ} → Term (〈 ℓ 〉 a) Γ → In ⟦ a ⟧ Γ → Set
+      Rl〈〉 t v = ∃ λ t' → R t' v × t ≈ η t'
+      
+      R⟨⟩ : ∀ {Γ} {a} {ℓ} → Term (〈 ℓ 〉 a) Γ  → 𝒞 ⟦ a ⟧ ℓ Γ → Set
+      R⟨⟩ t v = R𝒞 Rl〈〉 t v
+      
+      R : ∀ {a} {Γ} → Term a Γ → In ⟦ a ⟧ Γ → Set
+      R {𝟙}      _ _  =
+        ⊤
+      R {𝕓}      t n  =
+        t ≈ qNf n
+      R {a ⇒ b} {Γ} f f' =
+         ∀ {Δ t t'} → (e : Δ ⊆ Γ) → R t t' → R (wkenTm e f ∙ t) (f' e t')
+      R {a + b}  t v  =
+        R₊ t v
+      R {〈 ℓ 〉 a} t v  =
+        R⟨⟩ t v
+
+    Rs : ∀ {Γ Δ} → Sub Δ Γ → In ⟦ Γ ⟧ₑ Δ → Set
+    Rs Ø        tt        = ⊤
+    Rs (σ `, v) (σ' , v') = Rs σ σ' × R v v'
+    
+    ---------------------
+    -- Invariance lemma
+    ---------------------
+
+    -- R𝒟 Rl₊ is invariant under conversion by ≈
+    
+    inv₊ : ∀ {a b} {Γ} {t₁ t₂ : Term (a + b) Γ}
+         {v : 𝒟 (⟦ a ⟧ +ᴾ ⟦ b ⟧) Γ}
+       → t₁ ≈ t₂
+       → R𝒟 Rl₊ t₁ v
+       → R𝒟 Rl₊ t₂ v
+    inv₊ {v = return (inj₁ x)} p (t , q , r) =
+      t , q , ≈-trans (≈-sym p) r
+    inv₊ {v = return (inj₂ y)} p (t , q , r) =
+      t , q , ≈-trans (≈-sym p) r
+    inv₊ {v = branch x v v₁} p (t₁ , t₂ , q₁ , q₂ , r) =
+      t₁ , t₂ , q₁ , q₂ , ≈-trans (≈-sym p) r
+
+     -- R𝒞 Rl〈〉 is invariant under conversion by ≈
+        
+    inv〈〉 : ∀ {a} {Γ} {ℓ} {t₁ t₂ : Term (〈 ℓ 〉 a) Γ}
+         {v : 𝒞 ⟦ a ⟧ ℓ Γ}
+       → t₁ ≈ t₂
+       → R𝒞 Rl〈〉 t₁ v
+       → R𝒞 Rl〈〉 t₂ v
+    inv〈〉 {v = return x} p (t , q , r) =
+      t , q , ≈-trans (≈-sym p) r
+    inv〈〉 {v = branch x m₁ m₂} p (t₁ , t₂ , q₁ , q₂ , r) =
+      t₁ , t₂ , q₁ , q₂ , ≈-trans (≈-sym p) r
+    inv〈〉 {v = bind c n m} p (t₁ , q , r) =
+      t₁ , q , ≈-trans (≈-sym p) r
+
+    -- R is invariant under conversion by ≈
+    
+    inv : ∀ {a} {Γ} {t₁ t₂ :  Term a Γ} {v : In ⟦ a ⟧ Γ}
+        → t₁ ≈ t₂
+        → R t₁ v
+        → R t₂ v
+    inv {𝟙}      p q    =
+      tt
+    inv {𝕓}      p q     =
+      ≈-trans (≈-sym p) q
+    inv {a ⇒ b}  p q e r =
+      inv {b} (∙-≈ {!!} ≈-refl) (q e r)
+    inv {a + b} {v = v} p q =
+      inv₊ {v = v} p q
+    inv {〈 ℓ 〉 a} {v = v} p q =
+      inv〈〉 {v = v} p q
+
+    ---------------------------------------------
+    -- Fundamental theorem of logical relations
+    ---------------------------------------------
+
+    Fund : ∀ {Γ} {a} (t : Term a Γ) → Set
+    Fund {Γ} {a} t =
+      ∀ {Δ} {σ : Sub Δ Γ} {σ' : ⟦ Γ ⟧ₑ .In Δ}
+     → Rs σ σ'
+     → R (subst σ t) (eval t σ')
+
+    corrEval : ∀ {Γ} {a}
+      → (t : Term a Γ)
+      → Fund t
+    corrEval = {!!}
+
+    ---------------------------------
+    -- Correctness of normalization
+    ---------------------------------
+    
+    corrReify : ∀ {Γ} {a}
+      → {t : Term a Γ}
+      → Fund t
+      → t ≈ qNf (reify (eval t))
+    corrReify = {!!}
+
+    consistent : ∀ {Γ} {a}
+      → (t : Term a Γ)
+      → t ≈ qNf (norm t)
+    consistent t = corrReify (corrEval t)
+
+
+
+  
