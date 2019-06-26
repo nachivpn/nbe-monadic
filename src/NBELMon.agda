@@ -404,6 +404,10 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       TrueIsConst : ∀ {Γ} → IsConstNf {Γ} True
       TrueIsConst = (inl unit) , refl
 
+      -- LamConst : ∀ {Γ} {a b} → (b : Nf b (Γ `, a)) → IsConstNf b
+      --          → IsConstNf (`λ b)
+      -- LamConst b (fst , refl) = `λ (wkenNf (drop base) fst) , {!!}
+
   open Const public
 
   module NI where
@@ -417,7 +421,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       𝕓   : ∀ {ℓ}        → Tr 𝕓 ℓ
       _+_ : ∀ {a b} {ℓ}  → Tr a ℓ → Tr b ℓ → Tr (a + b) ℓ
       ⇒_  : ∀ {a b} {ℓ}  → Tr b ℓ → Tr (a ⇒ b) ℓ
-      〈_〉_ : ∀ {a} {ℓ ℓ'} → Tr a ℓ' → ℓ' ⊑ ℓ → Tr (〈 ℓ' 〉 a) ℓ
+      〈_〉_ : ∀ {a} {ℓ ℓ'} → Tr a ℓ → ℓ' ⊑ ℓ → Tr (〈 ℓ' 〉 a) ℓ
 
     -- Protected at
     
@@ -482,7 +486,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     Nf-Safe : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
       → Prᶜ Γ ℓⁱ            -- protected input   
       → Ground a → Tr a ℓᵒ  -- ground & transparent output
-      → (n : Nf a Γ) → IsConstNf n ⊎ (ℓⁱ ⊑ ℓᵒ)
+      → (n : Nf a Γ) → (IsConstNf n) ⊎ (ℓⁱ ⊑ ℓᵒ)
 
     -- units are constants
     Nf-Safe p g t unit = inj₁ (unit , refl)
@@ -496,7 +500,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     -- argument of η is either constant or at a higher level
     Nf-Safe p (〈 g 〉 ℓ) (〈 t 〉 q) (η n) with Nf-Safe p g t n
     ... | inj₁ (n' , r) = inj₁ (η n' , cong η r)
-    ... | inj₂ r = inj₂ (⊑-trans r q)
+    ... | inj₂ r = inj₂ r
 
     -- 
     Nf-Safe p g (〈 t 〉 q) (r ↑ x ≫= n) with Ne-Pr p x
@@ -566,3 +570,84 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     neutrality (x ∙ n) = ⊲-lift (sbr⇒ refl) (neutrality x)
 
   open Neutrality public
+
+  module Substitution where
+
+    infixr 6 _ₑ∘ₛ_ _ₛ∘ₑ_ _∘ₛ_
+
+    data Sub (Γ : Ctx) : Ctx → Set where
+      Ø    : Sub Γ Ø
+      _`,_ : ∀ {a Δ} → Sub Γ Δ → Term a Γ → Sub Γ (Δ `, a)
+
+    _ₛ∘ₑ_ : ∀ {Γ Δ Σ} → Sub Δ Σ → Γ ⊆ Δ → Sub Γ Σ
+    Ø       ₛ∘ₑ δ  = Ø
+    (s `, t) ₛ∘ₑ δ = (s ₛ∘ₑ δ) `, wkenTm δ t
+
+    _ₑ∘ₛ_ : ∀ {Γ Δ Σ} → Δ ⊆ Σ → Sub Γ Δ → Sub Γ Σ
+    base ₑ∘ₛ s = s
+    keep e ₑ∘ₛ (s `, t) = (e ₑ∘ₛ s) `, t
+    drop e ₑ∘ₛ (s `, t) = e ₑ∘ₛ s
+
+    dropₛ : ∀ {a Γ Δ} → Sub Γ Δ → Sub (Γ `, a) Δ
+    dropₛ σ = σ ₛ∘ₑ drop ⊆-refl
+
+    keepₛ : ∀ {Γ Δ} {a} → Sub Γ Δ → Sub (Γ `, a) (Δ `, a)
+    keepₛ σ = dropₛ σ `, var ze
+
+    ⌜_⌝ᵒᵖᵉ : ∀ {Γ Δ} → Γ ⊆ Δ → Sub Γ Δ
+    ⌜ base   ⌝ᵒᵖᵉ = Ø
+    ⌜ drop σ ⌝ᵒᵖᵉ = dropₛ ⌜ σ ⌝ᵒᵖᵉ
+    ⌜ keep σ ⌝ᵒᵖᵉ = keepₛ ⌜ σ ⌝ᵒᵖᵉ
+
+    -- Action on ∈ and Tm
+    ∈ₛ : ∀ {Γ Δ} {a} → Sub Γ Δ → a ∈ Δ → Term a Γ
+    ∈ₛ (s `, t) ze     = t
+    ∈ₛ (s `, x) (su e) = ∈ₛ s e
+
+    subst : ∀ {Γ Δ} {a} → Sub Γ Δ → Term a Δ → Term a Γ
+    subst s unit = unit
+    subst s (`λ t) = `λ (subst (keepₛ s) t)
+    subst s (var x)  = ∈ₛ s x
+    subst s (t ∙ u)  = subst s t ∙ subst s u
+    subst s (c ↑ t)  = c ↑ subst s t
+    subst s (η t)    = η (subst s t)
+    subst s (m ≫= f) = (subst s m) ≫= subst (keepₛ s) f
+    subst s (inl t) = inl (subst s t)
+    subst s (inr t) = inr (subst s t)
+    subst s (case t t₁ t₂) = case (subst s t) (subst (keepₛ s) t₁) (subst (keepₛ s) t₂)
+
+    -- Identity and composition
+    idₛ : ∀ {Γ} → Sub Γ Γ
+    idₛ {Ø}     = Ø
+    idₛ {Γ `, a} = keepₛ idₛ
+
+    _∘ₛ_ : ∀ {Γ Δ Σ} → Sub Δ Σ → Sub Γ Δ → Sub Γ Σ
+    Ø       ∘ₛ δ  = Ø
+    (s `, t) ∘ₛ δ = (s ∘ₛ δ) `, subst δ t
+
+  open Substitution
+  module Conversion where
+
+    data _≈_ {Γ} : ∀ {τ} → Term τ Γ → Term τ Γ → Set where
+
+      -- λ/ reduction
+      ⇒β-≈      : ∀ {a b} → {t : Term b (Γ `, a)} {u : Term a Γ}
+                → ((`λ t) ∙ u) ≈ subst (idₛ `, u) t
+
+      ⇒η-≈      : ∀ {a b} → {t : Term (a ⇒ b) Γ}
+                → t  ≈ `λ (wkenTm (drop ⊆-refl) t ∙ (var ze))
+
+      -- λ/ congruence
+      ∙-≈ : ∀ {a b} {f f′ : Term (a ⇒ b) Γ} {u u′ : Term a Γ}
+            → f ≈ f′
+            → u ≈ u′
+            → (f ∙ u) ≈ (f′ ∙ u′)
+
+      λ-≈ : ∀ {a b} {t t′ : Term a (Γ `, b)}
+          → t ≈ t′
+          → (`λ t) ≈ (`λ t′)
+
+      -- equivalence relation
+      ≈-refl  : ∀ {a} {t : Term a Γ}                  → t ≈ t
+      ≈-sym   : ∀ {a} {t t′ : Term a Γ}               → t ≈ t′ → t′ ≈ t
+      ≈-trans : ∀ {a} {t t′ t′′ : Term a Γ}           → t ≈ t′ → t′ ≈ t′′ → t ≈ t′′
