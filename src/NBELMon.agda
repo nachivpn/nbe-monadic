@@ -416,6 +416,9 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
     -- Transparency
     
+    -- `Tr a ℓ` to be read as: `a` is transparent at level ℓ
+    -- i.e., an observer at level ℓ can observe a value of type `a`
+    
     data Tr : Type → Label → Set where
       𝟙   : ∀ {ℓ}        → Tr 𝟙 ℓ
       𝕓   : ∀ {ℓ}        → Tr 𝕓 ℓ
@@ -423,19 +426,24 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       ⇒_  : ∀ {a b} {ℓ}  → Tr b ℓ → Tr (a ⇒ b) ℓ
       〈_〉_ : ∀ {a} {ℓ ℓ'} → Tr a ℓ → ℓ' ⊑ ℓ → Tr (〈 ℓ' 〉 a) ℓ
 
-    -- Protected at
+    -- Sensitivity
     
-    data Pr : Type → Label → Set where
-      ⇒_ : ∀ {ℓ} {a b}    → Pr b ℓ  → Pr (a ⇒ b) ℓ
-      〈〉_ : ∀ {ℓ} {ℓ'} {a} → ℓ ⊑ ℓ' → Pr (〈 ℓ' 〉 a) ℓ
+    -- `〈 ℓ 〉ˢ a` to be read as: `a` is atleast ℓ-sensitive
+    -- i.e., type `a` is atleast as sensitive as ℓ
     
-    -- Protected at, for context. Defined component-wise.
+    data 〈_〉ˢ : Label → Type → Set where
+      ⇒_ : ∀ {ℓ} {a b}    → 〈 ℓ 〉ˢ b  → 〈 ℓ 〉ˢ (a ⇒ b)
+      〈〉_ : ∀ {ℓ} {ℓ'} {a} → ℓ ⊑ ℓ' → 〈 ℓ 〉ˢ (〈 ℓ' 〉 a)
+      -- products will appear here too!
     
-    data Prᶜ : Ctx → Label → Set where
-      Ø    : ∀ {ℓ} → Prᶜ Ø ℓ
-      _`,_ : ∀ {ℓ} {Γ} {a} → Prᶜ Γ ℓ → Pr a ℓ → Prᶜ (Γ `, a) ℓ
+    -- `〈 ℓ 〉ˢᶜ Γ` to be read as: Γ is atleast ℓ-sensitive
+    -- i.e., all types in context Γ are atleast as sensitive as ℓ
+    
+    data 〈_〉ˢᶜ : Label → Ctx → Set where
+      Ø    : ∀ {ℓ} → 〈 ℓ 〉ˢᶜ Ø
+      _`,_ : ∀ {ℓ} {Γ} {a} → 〈 ℓ 〉ˢᶜ Γ → 〈 ℓ 〉ˢ a → 〈 ℓ 〉ˢᶜ (Γ `, a)
 
-    -- First order type
+    -- A `Ground` type is a first order type
     
     data Ground : Type → Set where
       𝟙   : Ground 𝟙
@@ -443,81 +451,83 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       〈_〉_ : ∀ {a} → Ground a → (ℓ : Label) → Ground (〈 ℓ 〉 a)
       _+_ : ∀ {a b} → Ground a → Ground b → Ground (a + b)
 
-    -- Variables preserve protecttion
+    -- Variables preserve sensitivity
     
-    Var-Pr : ∀ {Γ} {a} {ℓ} → Prᶜ Γ ℓ → a ∈ Γ → Pr a ℓ
-    Var-Pr (e `, a) ze = a
-    Var-Pr (e `, a) (su v) = Var-Pr e v
+    Var-Sen : ∀ {Γ} {a} {ℓ} → 〈 ℓ 〉ˢᶜ Γ → a ∈ Γ → 〈 ℓ 〉ˢ a
+    Var-Sen (e `, a) ze = a
+    Var-Sen (e `, a) (su v) = Var-Sen e v
 
-    -- Neutrals preserve protecttion
+    -- Neutrals preserve sensitivity
     
-    Ne-Pr : ∀ {Γ} {a} {ℓ} → Prᶜ Γ ℓ → Ne a Γ → Pr a ℓ
-    Ne-Pr e (var x) = Var-Pr e x
-    Ne-Pr e (x ∙ n) with (Ne-Pr e x)
+    Ne-Sen : ∀ {Γ} {a} {ℓ} → 〈 ℓ 〉ˢᶜ Γ → Ne a Γ → 〈 ℓ 〉ˢ a
+    Ne-Sen e (var x) = Var-Sen e x
+    Ne-Sen e (x ∙ n) with (Ne-Sen e x)
     ... | ⇒ p = p
 
-    -- Variable-outputs can only be observed at a higher level
+    -- Variables are secure
+    -- (observer must have clearance ℓⁱ ⊑ ℓᵒ to observe variable-outputs)
     
-    Var-Safe : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
-      → Prᶜ Γ ℓⁱ
-      → Tr a ℓᵒ
+    Var-Sec : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
+      → 〈 ℓⁱ 〉ˢᶜ Γ      -- input is atleast ℓⁱ-sensitive
+      → Tr a ℓᵒ        -- output is transparent at ℓᵒ
       → a ∈ Γ → (ℓⁱ ⊑ ℓᵒ)
-    Var-Safe (p `, ()) 𝟙 ze
-    Var-Safe (p `, ()) 𝕓 ze
-    Var-Safe (p `, ()) (_ + _) ze
-    Var-Safe (p `, (⇒ x)) (⇒ y) ze = Var-Safe (p `, x) y ze
-    Var-Safe (p `, (〈〉 q)) (〈 t 〉 x) ze = ⊑-trans q x
-    Var-Safe (p `, x) t (su v) = Var-Safe p t v
+    Var-Sec (p `, ()) 𝟙 ze
+    Var-Sec (p `, ()) 𝕓 ze
+    Var-Sec (p `, ()) (_ + _) ze
+    Var-Sec (p `, (⇒ x)) (⇒ y) ze = Var-Sec (p `, x) y ze
+    Var-Sec (p `, (〈〉 q)) (〈 t 〉 x) ze = ⊑-trans q x
+    Var-Sec (p `, x) t (su v) = Var-Sec p t v
 
-    -- Neutral-outputs can only be observed at a higher level
+    -- Neutrals are secure
+    -- (observer must have clearance ℓⁱ ⊑ ℓᵒ to observe neutral-outputs)
     
-    Ne-Safe : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
-      → Prᶜ Γ ℓⁱ
-      → Tr a ℓᵒ
+    Ne-Sec : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
+      → 〈 ℓⁱ 〉ˢᶜ Γ      -- input is atleast ℓⁱ-sensitive
+      → Tr a ℓᵒ        -- output is transparent at ℓᵒ
       → Ne a Γ → (ℓⁱ ⊑ ℓᵒ)
-    Ne-Safe e t (var x) = Var-Safe e t x
-    Ne-Safe e t (x ∙ _) = Ne-Safe e (⇒ t) x
+    Ne-Sec e t (var x) = Var-Sec e t x
+    Ne-Sec e t (x ∙ _) = Ne-Sec e (⇒ t) x
 
     ------------------------------------------------------------
-    -- (First-order) Normal forms are either constants,
-    -- or their output can only be observed at a higher level
+    -- (First-order) Normal forms are either constants (IsConstNf n)
+    -- or the observer must have the security clearance (ℓⁱ ⊑ ℓᵒ)
     ------------------------------------------------------------
 
-    Nf-Safe : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
-      → Prᶜ Γ ℓⁱ            -- protected input   
-      → Ground a → Tr a ℓᵒ  -- ground & transparent output
+    Nf-Sec : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
+      → 〈 ℓⁱ 〉ˢᶜ Γ           -- input is atleast ℓⁱ-sensitive
+      → Ground a → Tr a ℓᵒ  -- output is ground, and transparent at ℓᵒ
       → (n : Nf a Γ) → (IsConstNf n) ⊎ (ℓⁱ ⊑ ℓᵒ)
 
     -- units are constants
-    Nf-Safe p g t unit = inj₁ (unit , refl)
+    Nf-Sec p g t unit = inj₁ (unit , refl)
 
     -- return type is not allowed to be a function
-    Nf-Safe p () t (`λ n)
+    Nf-Sec p () t (`λ n)
 
-    -- base types are safe, by Ne-Safe
-    Nf-Safe p g t (𝕓 x) = inj₂ (Ne-Safe p t x)
+    -- base types are safe, by Ne-Sec
+    Nf-Sec p g t (𝕓 x) = inj₂ (Ne-Sec p t x)
 
     -- argument of η is either constant or at a higher level
-    Nf-Safe p (〈 g 〉 ℓ) (〈 t 〉 q) (η n) with Nf-Safe p g t n
+    Nf-Sec p (〈 g 〉 ℓ) (〈 t 〉 q) (η n) with Nf-Sec p g t n
     ... | inj₁ (n' , r) = inj₁ (η n' , cong η r)
     ... | inj₂ r = inj₂ r
 
     -- 
-    Nf-Safe p g (〈 t 〉 q) (r ↑ x ≫= n) with Ne-Pr p x
+    Nf-Sec p g (〈 t 〉 q) (r ↑ x ≫= n) with Ne-Sen p x
     ... | 〈〉 s = inj₂ (⊑-trans s (⊑-trans r q))
 
     -- 
-    Nf-Safe p (g + _) (t + _) (inl n) with Nf-Safe p g t n
+    Nf-Sec p (g + _) (t + _) (inl n) with Nf-Sec p g t n
     ... | inj₁ (n' , r) = inj₁ (inl n' , cong inl r)
     ... | inj₂ r = inj₂ r
 
     -- 
-    Nf-Safe p (_ + g) (_ + t) (inr n) with Nf-Safe p g t n
+    Nf-Sec p (_ + g) (_ + t) (inr n) with Nf-Sec p g t n
     ... | inj₁ (n' , r) = inj₁ (inr n' , cong inr r)
     ... | inj₂ r = inj₂ r
 
-    -- sums are not allowed in the context
-    Nf-Safe p g t (case x n₁ n₂) with Ne-Pr p x
+    -- raw unprotected sums are not allowed in the context
+    Nf-Sec p g t (case x n₁ n₂) with Ne-Sen p x
     ... | ()
 
     open import Data.Empty
@@ -773,12 +783,12 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
         → t₁ ≈ t₂
         → R t₁ v
         → R t₂ v
-    inv {𝟙}      p q    =
+    inv {𝟙} p q =
       tt
-    inv {𝕓}      p q     =
+    inv {𝕓} p q =
       ≈-trans (≈-sym p) q
-    inv {a ⇒ b}  p q e r =
-      inv {b} (∙-≈ {!!} ≈-refl) (q e r)
+    inv {a ⇒ b}  p q =
+      λ  e r → inv {b} (∙-≈ {!!} ≈-refl) (q e r)
     inv {a + b} {v = v} p q =
       inv₊ {v = v} p q
     inv {〈 ℓ 〉 a} {v = v} p q =
