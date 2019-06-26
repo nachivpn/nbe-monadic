@@ -60,7 +60,7 @@ module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
             → (n : Nf (〈 ℓᴸ 〉 Bool) (Ø `, (〈 ℓᴴ 〉 a)))
             → IsConstNf n
   nf-lemma₁' ℓᴴ⋢ℓᴸ n
-    with Nf-Safe
+    with Nf-Sec
            (Ø `, (〈〉 ⊑-refl))  -- (Ø `, 〈 ℓᴴ 〉 a) is protected at H
            (〈 𝟙 + 𝟙 〉 _)       -- (〈 ℓᴸ 〉 Bool) is ground
            (〈 𝟙 + 𝟙 〉 ⊑-refl)  -- (〈 ℓᴸ 〉 Bool) is transparent at ℓᴸ
