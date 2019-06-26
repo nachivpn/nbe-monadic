@@ -494,43 +494,43 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     -- (i.e., observer level must be atleast the least security level in the input)
     -----------------------------------------------------------------------------
 
-    -- `Nf-Sec` 
+    -- `Nf-NI` 
     
-    Nf-Sec : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
+    Nf-NI : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
       → 〈 ℓⁱ 〉ˢᶜ Γ           -- input is atleast ℓⁱ-sensitive
       → Ground a → Tr a ℓᵒ  -- output is ground, and transparent at ℓᵒ
       → (n : Nf a Γ) → (IsConstNf n) ⊎ (ℓⁱ ⊑ ℓᵒ)
 
     -- units are constants
-    Nf-Sec p g t unit = inj₁ (unit , refl)
+    Nf-NI p g t unit = inj₁ (unit , refl)
 
     -- return type is not allowed to be a function
-    Nf-Sec p () t (`λ n)
+    Nf-NI p () t (`λ n)
 
     -- base types are safe, by Ne-Sec
-    Nf-Sec p g t (𝕓 x) = inj₂ (Ne-Sec p t x)
+    Nf-NI p g t (𝕓 x) = inj₂ (Ne-Sec p t x)
 
     -- argument of η is either constant or at a higher level
-    Nf-Sec p (〈 g 〉 ℓ) (〈 t 〉 q) (η n) with Nf-Sec p g t n
+    Nf-NI p (〈 g 〉 ℓ) (〈 t 〉 q) (η n) with Nf-NI p g t n
     ... | inj₁ (n' , r) = inj₁ (η n' , cong η r)
     ... | inj₂ r = inj₂ r
 
     -- 
-    Nf-Sec p g (〈 t 〉 q) (r ↑ x ≫= n) with Ne-Sen p x
+    Nf-NI p g (〈 t 〉 q) (r ↑ x ≫= n) with Ne-Sen p x
     ... | 〈〉 s = inj₂ (⊑-trans s (⊑-trans r q))
 
     -- 
-    Nf-Sec p (g + _) (t + _) (inl n) with Nf-Sec p g t n
+    Nf-NI p (g + _) (t + _) (inl n) with Nf-NI p g t n
     ... | inj₁ (n' , r) = inj₁ (inl n' , cong inl r)
     ... | inj₂ r = inj₂ r
 
     -- 
-    Nf-Sec p (_ + g) (_ + t) (inr n) with Nf-Sec p g t n
+    Nf-NI p (_ + g) (_ + t) (inr n) with Nf-NI p g t n
     ... | inj₁ (n' , r) = inj₁ (inr n' , cong inr r)
     ... | inj₂ r = inj₂ r
 
     -- raw unprotected sums are not allowed in the context
-    Nf-Sec p g t (case x n₁ n₂) with Ne-Sen p x
+    Nf-NI p g t (case x n₁ n₂) with Ne-Sen p x
     ... | ()
 
     open import Data.Empty
@@ -827,6 +827,44 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       → t ≈ qNf (norm t)
     consistent t = corrReify (corrEval t)
 
+  open Consistency public
 
+  -------------------------------------
+  -- Noninterference theorem for terms
+  -------------------------------------
 
+  open import Relation.Binary.PropositionalEquality hiding (subst)
+
+  ≡→≈ :  ∀ {Γ a} → {m n : Nf Γ a} → m ≡ n → qNf m ≈ qNf n
+  ≡→≈ refl = ≈-refl
   
+  -- a weaker version of `IsConstTm`
+  
+  IsConstTm' : ∀ {Γ a} → Term a Γ → Set
+  IsConstTm' {Γ} {a} t = Σ (Term a Ø) λ t' → wkenTm ⊆-term t' ≈ t
+  
+  -- Naturality condition of the `qNf` natural transformation
+  -- (should be provable, also required for `consistent` I think)
+  
+  nat-qNF : ∀ {Γ Δ a} {e : Δ ⊆ Γ} {n : Nf a Γ} → wkenTm e (qNf n) ≈ qNf (wkenNf e n)
+  nat-qNF = {!!}
+
+  -- Ultimate noninterference theorem
+  
+  Tm-NI : ∀ {Δ Γ} {a} {ℓⁱ ℓᵒ}
+      → (t : Term a Γ)
+      → (σ : Sub Δ Γ)       -- substitution for part of input which is not sensitive
+      → 〈 ℓⁱ 〉ˢᶜ Δ           -- remaining input is atleast ℓⁱ-sensitive
+      → Ground a → Tr a ℓᵒ  -- output is ground, and transparent at ℓᵒ
+      → (IsConstTm' (subst σ t)) ⊎ (ℓⁱ ⊑ ℓᵒ)
+  Tm-NI t σ s gr tr with Nf-NI s gr tr (norm (subst σ t))
+  ... | inj₁ (n' , p) =
+    inj₁ (qNf n' ,
+      ≈-sym
+        (≈-trans
+          (consistent _)
+          (≈-sym
+            (≈-trans
+              (nat-qNF {n = n'})
+              (≡→≈ p)))))
+  ... | inj₂ p        = inj₂ p

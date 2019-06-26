@@ -60,7 +60,7 @@ module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
             → (n : Nf (〈 ℓᴸ 〉 Bool) (Ø `, (〈 ℓᴴ 〉 a)))
             → IsConstNf n
   nf-lemma₁' ℓᴴ⋢ℓᴸ n
-    with Nf-Sec
+    with Nf-NI
            (Ø `, (〈〉 ⊑-refl))  -- (Ø `, 〈 ℓᴴ 〉 a) is atleast H-sensitive
            (〈 𝟙 + 𝟙 〉 _)       -- `〈 ℓᴸ 〉 Bool` is ground
            (〈 𝟙 + 𝟙 〉 ⊑-refl)  -- `〈 ℓᴸ 〉 Bool` is transparent at ℓᴸ
@@ -77,7 +77,7 @@ module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
             → Tr b ℓᴸ
             → (n : Nf (〈 ℓᴸ 〉 b) (Ø `, (〈 ℓᴴ 〉 a)))
             → IsConstNf n
-  nf-lemma₂ ℓᴴ⋢ℓᴸ g t n with Nf-Sec
+  nf-lemma₂ ℓᴴ⋢ℓᴸ g t n with Nf-NI
            (Ø `, (〈〉 ⊑-refl))  -- (Ø `, 〈 ℓᴴ 〉 a) is atleast H-sensitive
            (〈 g 〉 _)           -- `〈 ℓᴸ 〉 b` is ground (since b is)
            (〈 t 〉 ⊑-refl)      -- `〈 ℓᴸ 〉 b` is transparent at ℓᴸ (since b is)
