@@ -488,11 +488,14 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     Ne-Sec e t (var x) = Var-Sec e t x
     Ne-Sec e t (x ∙ _) = Ne-Sec e (⇒ t) x
 
-    ------------------------------------------------------------
-    -- (First-order) Normal forms are either constants (IsConstNf n)
-    -- or the observer must have the security clearance (ℓⁱ ⊑ ℓᵒ)
-    ------------------------------------------------------------
+    -----------------------------------------------------------------------------
+    -- (First-order) Normal forms are either constants (IsConstNf n) or
+    -- the observer must have the security clearance (ℓⁱ ⊑ ℓᵒ)
+    -- (i.e., observer level must be atleast the least secure value in the input)
+    -----------------------------------------------------------------------------
 
+    -- `Nf-Sec` 
+    
     Nf-Sec : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
       → 〈 ℓⁱ 〉ˢᶜ Γ           -- input is atleast ℓⁱ-sensitive
       → Ground a → Tr a ℓᵒ  -- output is ground, and transparent at ℓᵒ
