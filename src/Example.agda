@@ -51,7 +51,7 @@ module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
     with neutrality x
   ... | ()
   
-  -- An equivalent of `nf-lemma₁`.
+  -- An equivalent of nf-lemma₁.
   -- I chose a different (but equivalent) type for the normal form
   -- since it readily yields the result on using `Nf-Sec`.
   
@@ -61,10 +61,30 @@ module Example (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ) where
             → IsConstNf n
   nf-lemma₁' ℓᴴ⋢ℓᴸ n
     with Nf-Sec
-           (Ø `, (〈〉 ⊑-refl))  -- (Ø `, 〈 ℓᴴ 〉 a) is protected at H
-           (〈 𝟙 + 𝟙 〉 _)       -- (〈 ℓᴸ 〉 Bool) is ground
-           (〈 𝟙 + 𝟙 〉 ⊑-refl)  -- (〈 ℓᴸ 〉 Bool) is transparent at ℓᴸ
+           (Ø `, (〈〉 ⊑-refl))  -- (Ø `, 〈 ℓᴴ 〉 a) is atleast H-sensitive
+           (〈 𝟙 + 𝟙 〉 _)       -- `〈 ℓᴸ 〉 Bool` is ground
+           (〈 𝟙 + 𝟙 〉 ⊑-refl)  -- `〈 ℓᴸ 〉 Bool` is transparent at ℓᴸ
            n
   ... | inj₁ nIsConst = nIsConst
   ... | inj₂ ℓᴴ⊑ℓᴸ    = ⊥-elim (ℓᴴ⋢ℓᴸ ℓᴴ⊑ℓᴸ)
 
+  -- A more general version of nf-lemma₁'
+  -- (insantiating `b` with `Bool` gives nf-lemma₁')
+  
+  nf-lemma₂ :  ∀ {a} {b} {ℓᴸ ℓᴴ}
+            → ¬ (ℓᴴ ⊑ ℓᴸ)
+            → Ground b
+            → Tr b ℓᴸ
+            → (n : Nf (〈 ℓᴸ 〉 b) (Ø `, (〈 ℓᴴ 〉 a)))
+            → IsConstNf n
+  nf-lemma₂ ℓᴴ⋢ℓᴸ g t n with Nf-Sec
+           (Ø `, (〈〉 ⊑-refl))  -- (Ø `, 〈 ℓᴴ 〉 a) is atleast H-sensitive
+           (〈 g 〉 _)           -- `〈 ℓᴸ 〉 b` is ground (since b is)
+           (〈 t 〉 ⊑-refl)      -- `〈 ℓᴸ 〉 b` is transparent at ℓᴸ (since b is)
+           n
+  ... | inj₁ nIsConst = nIsConst
+  ... | inj₂ ℓᴴ⊑ℓᴸ = ⊥-elim (ℓᴴ⋢ℓᴸ ℓᴴ⊑ℓᴸ)
+
+  -- NOTE: Using nf-lemma₂, we should be able to prove NI for
+  -- `Nf (〈 ℓᴸ 〉 b × 〈 ℓᴴ 〉 b)  (Ø `, 〈 ℓᴸ 〉 a `, 〈 ℓᴴ 〉 a)`
+  -- TBD after we add products
