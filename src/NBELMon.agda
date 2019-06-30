@@ -662,7 +662,15 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
                                   {t₂ : Term (〈 ℓ 〉 b) (Γ `, a)}
                                   {t₃ : Term (〈 ℓ 〉 c) (Γ `, b)}
                 → (t₁ ≫= (t₂ ≫= wkenTm (keep (drop ⊆-refl)) t₃)) ≈ ((t₁ ≫= t₂) ≫= t₃)
-                 
+
+      -- Up laws
+
+      ↑γ₁-≈ : ∀ {a} {ℓᴸ ℓᴴ} → {t : Term a Γ} {p : ℓᴸ ⊑ ℓᴴ}
+                → (p ↑ η t) ≈ η t
+                
+      ↑γ₂-≈ : ∀ {a b} {ℓᴸ ℓᴴ} → {t₁ : Term (〈 ℓᴸ 〉 a) Γ} {t₂ : Term (〈 ℓᴸ 〉 (〈 ℓᴸ 〉 b)) (Γ `, a)} {p : ℓᴸ ⊑ ℓᴴ} 
+                → (p ↑ (t₁ ≫= t₂)) ≈ ((p ↑ t₁) ≫= (p ↑ t₂))
+            
       -- congruence laws
       
       -- λ/ congruence
@@ -849,22 +857,31 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   nat-qNF : ∀ {Γ Δ a} {e : Δ ⊆ Γ} {n : Nf a Γ} → wkenTm e (qNf n) ≈ qNf (wkenNf e n)
   nat-qNF = {!!}
 
+
   -- Ultimate noninterference theorem
+
+
+  Tm-NI : ∀ {Γ} {a} {ℓⁱ ℓᵒ}
+      → 〈 ℓⁱ 〉ˢᶜ Γ           -- input is atleast ℓⁱ-sensitive
+      → Ground a → Tr a ℓᵒ  -- output is ground, and transparent at ℓᵒ
+      → (t : Term a Γ) → (IsConstTm' t) ⊎ (ℓⁱ ⊑ ℓᵒ)
+  Tm-NI p g q t with Nf-NI p g q (norm t)
+  Tm-NI p g q t | inj₁ (n , r) = inj₁ ((qNf n) ,
+    ≈-sym
+      (≈-trans (consistent _)
+      ((≈-sym
+            (≈-trans
+              (nat-qNF {n = n})
+              (≡→≈ r))))))
+  Tm-NI p g q t | inj₂ y = inj₂ y
+
   
-  Tm-NI : ∀ {Δ Γ} {a} {ℓⁱ ℓᵒ}
+  Tm-NI' : ∀ {Δ Γ} {a} {ℓⁱ ℓᵒ}
       → (t : Term a Γ)
       → (σ : Sub Δ Γ)       -- substitution for part of input which is not sensitive
       → 〈 ℓⁱ 〉ˢᶜ Δ           -- remaining input is atleast ℓⁱ-sensitive
       → Ground a → Tr a ℓᵒ  -- output is ground, and transparent at ℓᵒ
       → (IsConstTm' (subst σ t)) ⊎ (ℓⁱ ⊑ ℓᵒ)
-  Tm-NI t σ s gr tr with Nf-NI s gr tr (norm (subst σ t))
-  ... | inj₁ (n' , p) =
-    inj₁ (qNf n' ,
-      ≈-sym
-        (≈-trans
-          (consistent _)
-          (≈-sym
-            (≈-trans
-              (nat-qNF {n = n'})
-              (≡→≈ p)))))
-  ... | inj₂ p        = inj₂ p
+  Tm-NI' t σ s gr tr = Tm-NI s gr tr _
+
+
