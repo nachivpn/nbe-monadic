@@ -257,6 +257,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
   bindExp𝒟 : ∀ {A B} → (A ⇒ᴾ 𝒟ᴾ B) →∙ (𝒟ᴾ A ⇒ᴾ 𝒟ᴾ B)
   bindExp𝒟 f e m = join𝒟 (mapExp𝒟 f e m)
 
+  
   open DecMonad
 
   module Interpretation where
@@ -667,7 +668,6 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
 
       ↑γ₁-≈ : ∀ {a} {ℓᴸ ℓᴴ} → {t : Term a Γ} {p : ℓᴸ ⊑ ℓᴴ}
                 → (p ↑ η t) ≈ η t
-                
       ↑γ₂-≈ : ∀ {a b} {ℓᴸ ℓᴴ} → {t₁ : Term (〈 ℓᴸ 〉 a) Γ} {t₂ : Term (〈 ℓᴸ 〉 (〈 ℓᴸ 〉 b)) (Γ `, a)} {p : ℓᴸ ⊑ ℓᴴ} 
                 → (p ↑ (t₁ ≫= t₂)) ≈ ((p ↑ t₁) ≫= (p ↑ t₂))
             
@@ -737,8 +737,8 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       Rl〈〉  : ∀ {Γ a} {ℓ} → Term (〈 ℓ 〉 a) Γ → In ⟦ a ⟧ Γ → Set
       Rl〈〉 t v = ∃ λ t' → R t' v × t ≈ η t'
       
-      R⟨⟩ : ∀ {Γ} {a} {ℓ} → Term (〈 ℓ 〉 a) Γ  → 𝒞 ⟦ a ⟧ ℓ Γ → Set
-      R⟨⟩ t v = R𝒞 Rl〈〉 t v
+      R〈〉 : ∀ {Γ} {a} {ℓ} → Term (〈 ℓ 〉 a) Γ  → 𝒞 ⟦ a ⟧ ℓ Γ → Set
+      R〈〉 t v = R𝒞 Rl〈〉 t v
       
       R : ∀ {a} {Γ} → Term a Γ → In ⟦ a ⟧ Γ → Set
       R {𝟙}      _ _  =
@@ -750,7 +750,7 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
       R {a + b}  t v  =
         R₊ t v
       R {〈 ℓ 〉 a} t v  =
-        R⟨⟩ t v
+        R〈〉 t v
 
     Rs : ∀ {Γ Δ} → Sub Δ Γ → In ⟦ Γ ⟧ₑ Δ → Set
     Rs Ø        tt        = ⊤
@@ -805,6 +805,42 @@ module NBELMon (Pre : RB.Preorder 0ℓ 0ℓ 0ℓ)where
     inv {〈 ℓ 〉 a} {v = v} p q =
       inv〈〉 {v = v} p q
 
+    ---------------------------------------------
+    -- Weakening preserves relations
+    ---------------------------------------------
+
+    wkPresR₊ : ∀ {a b} {Γ Δ} {t :  Term (a + b) Γ}
+             {v : 𝒟 (⟦ a ⟧ +ᴾ ⟦ b ⟧) Γ}  {e : Δ ⊆ Γ}
+        -- need one more argument
+        → R t v
+        → R (wkenTm e t) (wken𝒟 e v)
+    wkPresR₊ {a} {b} {v = return x}       r =
+       {!!}
+    wkPresR₊ {a} {b} {v = branch x v₁ v₂} {e} (t₁ , t₂ , r₁ , r₂ , p) =
+      wkenTm (keep e) t₁
+      , (wkenTm (keep e) t₂)
+      , wkPresR₊ {a} {b} {v = v₁} r₁
+      , wkPresR₊ {a} {b} {v = v₂} r₂
+      , {!!}
+
+    wkPresR〈〉 : ∀ {a} {ℓ} {Γ Δ} {t :  Term (〈 ℓ 〉 a) Γ}
+             {v : 𝒞 ⟦ a ⟧ ℓ Γ}  {e : Δ ⊆ Γ}
+        → R t v
+        → R (wkenTm e t) (wken𝒞 e v)
+    wkPresR〈〉 r = {!!}
+    
+    wkPresR : ∀ {a} {Γ Δ} {t :  Term a Γ} {v : In ⟦ a ⟧ Γ} {e : Δ ⊆ Γ}
+        → R t v
+        → R (wkenTm e t) (Wken ⟦ a ⟧ e v)
+    wkPresR {𝟙}              r = tt
+    wkPresR {𝕓}              r = {!!}
+    wkPresR {a ⇒ b} {e = e}  r = λ e' vₐ →
+      inv {b}
+        {!!}
+        (r (⊆-trans e' e) vₐ)
+    wkPresR {a + b}  {v = v} r = wkPresR₊ {a} {b} {v = v} r
+    wkPresR {〈 ℓ 〉 a} {v = v} r = wkPresR〈〉 {a} {ℓ} {v = v} r
+    
     ---------------------------------------------
     -- Fundamental theorem of logical relations
     ---------------------------------------------
